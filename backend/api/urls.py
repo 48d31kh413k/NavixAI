@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import test
+from .views import test, get_weather_suggestions
 
 urlpatterns = [
     path('test/', test, name='test'),

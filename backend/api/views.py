@@ -5,6 +5,8 @@ import requests
 from django.core.cache import cache
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from dotenv import load_dotenv
+import os
 
 # Create your views here.
 @api_view(['GET'])
@@ -12,7 +14,7 @@ def test(request):
     return Response({'message': 'API is working'})
 
 
-OPENWEATHERMAP_API_KEY = 'your_openweathermap_api_key'
+OPENWEATHERMAP_API_KEY = os.getenv('OPENWEATHERMAP_API_KEY')
 
 @csrf_exempt
 def get_weather_suggestions(request):

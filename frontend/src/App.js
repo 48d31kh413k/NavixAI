@@ -32,7 +32,9 @@ function App() {
                 setLoading(false);
             });
     }, []); // Empty dependency array ensures this runs only once when the component mounts
-
+    useEffect(() => {
+        fetchUserLocation();
+    }, []);
     // If the data is still loading, display a loading message
     if (loading) return <div>Loading...</div>;
 
@@ -90,9 +92,7 @@ const fetchUserLocation = () => {
     }
 };
 
-useEffect(() => {
-    fetchUserLocation();
-}, []);
+
 
 const sendCoordinatesToBackend = async (latitude, longitude) => {
     try {
