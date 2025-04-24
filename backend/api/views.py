@@ -8,13 +8,10 @@ from django.views.decorators.csrf import csrf_exempt
 from dotenv import load_dotenv
 import os
 
-# Create your views here.
+# # Create your views here.
 @api_view(['GET'])
 def test(request):
     return Response({'message': 'API is working'})
-
-
-OPENWEATHERMAP_API_KEY = os.getenv('OPENWEATHERMAP_API_KEY')
 
 @csrf_exempt
 def get_weather_suggestions(request):
@@ -39,3 +36,4 @@ def get_weather_suggestions(request):
 
         return JsonResponse(weather_data)
     return JsonResponse({'error': 'Invalid request method'}, status=400)
+

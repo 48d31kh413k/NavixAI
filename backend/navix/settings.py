@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from dotenv import load_dotenv
 import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,9 +24,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-6(-_%f^v7g3_9gvjp9+(88(+9)sz+w#6s3l(%ijp5o4n6ndz1+'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -138,3 +139,7 @@ CACHES = {
         'LOCATION': 'unique-snowflake',
     }
 }
+
+OPENWEATHERMAP_API_KEY = '2eeff5f6d782926a41554b32b7d3a553'
+if not OPENWEATHERMAP_API_KEY:
+    raise ValueError("Missing OpenWeatherMap API Key")  # Add this temporarily
