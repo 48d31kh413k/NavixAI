@@ -8,6 +8,7 @@ function App() {
     const [error, setError] = useState(null);
     const [weatherData, setWeatherData] = useState(null);
     const [locationError, setLocationError] = useState(null);
+    const [activity, setActivity] = useState(null);
 
     // Fetch test data from backend
     useEffect(() => {
@@ -22,7 +23,22 @@ function App() {
             });
     }, []);
 
-    // Fetch user location and send to backend
+    // Fetch activity suggestion
+    const fetchActivitySuggestion = async (latitude, longitude) => {
+        try {
+            const response = await axios.post(
+                'http://127.0.0.1:8000/api/activity-suggestion/',
+                { latitude, longitude },
+                { headers: { 'Content-Type': 'application/json' } }
+            );
+            setActivity(response.data.activity);
+        } catch (error) {
+            console.error("Failed to fetch activity:", error);
+            setActivity('park');  // Fallback
+        }
+    };
+
+    // Fetch user location, weather, and activity suggestion
     useEffect(() => {
         const fetchUserLocation = () => {
             if (navigator.geolocation) {
@@ -30,15 +46,19 @@ function App() {
                     async (position) => {
                         const { latitude, longitude } = position.coords;
                         try {
-                            const response = await axios.post(
-                                'http://127.0.0.1:8000/api/api/suggestions/', 
+                            // Fetch weather data
+                            const weatherResponse = await axios.post(
+                                'http://127.0.0.1:8000/api/suggestions/', 
                                 { latitude, longitude },
-                                { headers: { 'Content-Type': 'application/json' } }
+                                { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
                             );
-                            setWeatherData(response.data);
+                            setWeatherData(weatherResponse.data);
+                            
+                            // Then fetch activity suggestion
+                            await fetchActivitySuggestion(latitude, longitude);
                         } catch (err) {
                             setLocationError('Failed to get weather data');
-                            console.error("Weather API error:", err);
+                            console.error("API error:", err);
                         }
                     },
                     (error) => {
@@ -80,6 +100,13 @@ function App() {
                                 <div style={{ marginTop: '20px' }}>
                                     <h2>Weather Information</h2>
                                     <pre>{JSON.stringify(weatherData, null, 2)}</pre>
+                                    
+                                    {activity && (
+                                        <div style={{ marginTop: '20px' }}>
+                                            <h2>Suggested Activity</h2>
+                                            <p>{activity.charAt(0).toUpperCase() + activity.slice(1)}</p>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div style={{ marginTop: '20px' }}>
