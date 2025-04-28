@@ -10,11 +10,15 @@ import os
 import openai
 import json  
 from django.http import JsonResponse
-
+import googlemaps
+from django.conf import settings
 load_dotenv()
-
-OPENWEATHERMAP_API_KEY = os.getenv('OPENWEATHERMAP_API_KEY')
 openai.api_key = os.getenv('OPENAI_API_KEY')
+OPENWEATHERMAP_API_KEY = os.getenv('OPENWEATHERMAP_API_KEY')
+GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
+
+
+
 # # Create your views here.
 @api_view(['GET'])
 def test(request):
@@ -89,7 +93,15 @@ def get_activity_suggestion(request):
             # Cache for 1 hour (3600 seconds)
             cache.set(cache_key, activity, 3600)
             
-            return JsonResponse({'activity': activity})
+            # return JsonResponse({'activity': activity})
+            # Get nearby places for the suggested activity
+            nearby_places = get_nearby_places(latitude, longitude, activity)
+            
+            return JsonResponse({
+                'activity': activity,
+                'places': nearby_places,
+                'weather': weather_data
+            })
             
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
@@ -110,3 +122,26 @@ def get_weather_data(latitude, longitude):
     cached_data = cache.get(cache_key)
     if cached_data:
         return cached_data
+    
+
+def get_nearby_places(latitude, longitude, activity_type, radius=5000):
+    """Fetch places from Google Places API"""
+    gmaps = googlemaps.Client(key=settings.GOOGLE_MAPS_API_KEY)
+    
+    try:
+        places_result = gmaps.places_nearby(
+            location=(latitude, longitude),
+            keyword=activity_type,
+            radius=radius,
+            type='establishment'
+        )
+        return [{
+            'name': place.get('name'),
+            'address': place.get('vicinity'),
+            'rating': place.get('rating'),
+            'location': place.get('geometry', {}).get('location')
+        } for place in places_result.get('results', [])[:5]]  # Return top 5 results
+        
+    except Exception as e:
+        logger.error(f"Google Places API error: {str(e)}")
+        return []
