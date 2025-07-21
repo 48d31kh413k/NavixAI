@@ -1,0 +1,270 @@
+.swipe-container {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.cards-stack {
+    position: relative;
+    height: 500px;
+    width: 100%;
+}
+
+.swipe-card {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+}
+
+.swipe-card:active {
+    cursor: grabbing;
+}
+
+.card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    height: 100%;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card.top-card {
+    z-index: 3;
+}
+
+.card:nth-child(2) {
+    z-index: 2;
+    transform: scale(0.95) translateY(10px);
+    opacity: 0.8;
+}
+
+.card:nth-child(3) {
+    z-index: 1;
+    transform: scale(0.9) translateY(20px);
+    opacity: 0.6;
+}
+
+.card:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.card-image {
+    height: 250px;
+    overflow: hidden;
+    background: #f8f9fa;
+}
+
+.card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.card:hover .card-image img {
+    transform: scale(1.05);
+}
+
+.no-image {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.no-image span {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+.card-content {
+    padding: 20px;
+}
+
+.place-name {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: #333;
+}
+
+.place-address {
+    color: #666;
+    margin: 0 0 15px 0;
+    font-size: 0.9rem;
+}
+
+.place-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.rating {
+    color: #ffc107;
+    font-size: 0.9rem;
+}
+
+.price-level {
+    color: #28a745;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.opening-hours .open {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.opening-hours .closed {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.place-types {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.type-tag {
+    background: #e9ecef;
+    color: #495057;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    text-transform: capitalize;
+}
+
+.swipe-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 20px;
+}
+
+.swipe-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.swipe-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.swipe-btn:active {
+    transform: scale(0.95);
+}
+
+.swipe-btn.dislike {
+    background: #dc3545;
+    color: white;
+}
+
+.swipe-btn.like {
+    background: #28a745;
+    color: white;
+}
+
+.swipe-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.swipe-instructions {
+    text-align: center;
+    margin-top: 15px;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.swipe-instructions p {
+    margin: 5px 0;
+}
+
+.no-more-cards {
+    text-align: center;
+    padding: 40px 20px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.no-more-cards h3 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.new-suggestions-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.new-suggestions-btn:hover {
+    background: #0056b3;
+}
+
+/* Animation for swipe feedback */
+@keyframes swipeRight {
+    0% { transform: translateX(0) rotate(0deg); }
+    100% { transform: translateX(100px) rotate(20deg); opacity: 0; }
+}
+
+@keyframes swipeLeft {
+    0% { transform: translateX(0) rotate(0deg); }
+    100% { transform: translateX(-100px) rotate(-20deg); opacity: 0; }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .swipe-container {
+        max-width: 350px;
+    }
+    
+    .cards-stack {
+        height: 450px;
+    }
+    
+    .card-image {
+        height: 200px;
+    }
+    
+    .card-content {
+        padding: 15px;
+    }
+    
+    .place-name {
+        font-size: 1.2rem;
+    }
+    
+    .swipe-buttons {
+        gap: 20px;
+    }
+    
+    .swipe-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 1.3rem;
+    }
+}
