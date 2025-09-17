@@ -12,6 +12,7 @@ import json
 from django.http import JsonResponse
 import googlemaps
 from django.conf import settings
+
 load_dotenv()
 openai.api_key = os.getenv('OPENAI_API_KEY')
 OPENWEATHERMAP_API_KEY = os.getenv('OPENWEATHERMAP_API_KEY')
