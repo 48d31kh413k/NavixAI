@@ -5,6 +5,116 @@
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* App Layout with Sidebar */
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+    background: #f8f9fa;
+    position: relative;
+}
+
+/* Hamburger Menu Button */
+.hamburger-menu {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1001;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.hamburger-menu:hover {
+    background: #f8f9fa;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.hamburger-menu span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: #333;
+    transition: all 0.3s ease;
+    border-radius: 1px;
+}
+
+.hamburger-menu span:nth-child(1) {
+    transform-origin: left center;
+}
+
+.hamburger-menu span:nth-child(2) {
+    opacity: 1;
+}
+
+.hamburger-menu span:nth-child(3) {
+    transform-origin: left center;
+}
+
+/* Animated hamburger when sidebar is closed */
+.sidebar-closed .hamburger-menu span:nth-child(1) {
+    transform: rotate(45deg);
+}
+
+.sidebar-closed .hamburger-menu span:nth-child(2) {
+    opacity: 0;
+}
+
+.sidebar-closed .hamburger-menu span:nth-child(3) {
+    transform: rotate(-45deg);
+}
+
+.main-content {
+    flex: 1;
+    min-height: 100vh;
+    background: #f8f9fa;
+    overflow-x: hidden;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+/* When sidebar is open */
+.main-content.sidebar-open {
+    margin-left: 280px;
+    padding-left: 30px;
+    width: calc(100% - 280px);
+}
+
+/* When sidebar is closed */
+.main-content.sidebar-closed {
+    margin-left: 0;
+    padding-left: 80px; /* Space for hamburger menu */
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .main-content.sidebar-open {
+        margin-left: 0;
+        width: 100%;
+        padding-left: 80px;
+    }
+    
+    .main-content.sidebar-closed {
+        margin-left: 0;
+        width: 100%;
+        padding-left: 80px;
+    }
+    
+    .hamburger-menu {
+        top: 15px;
+        left: 15px;
+    }
+}
+
 .app-header {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);

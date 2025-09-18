@@ -1,7 +1,8 @@
 .user-history {
     max-width: 900px;
     margin: 0 auto;
-    padding: 20px;
+    margin-left: 40px; /* Push user history to the right */
+    padding: 20px 40px 20px 20px; /* Add right padding */
     background: #f8f9fa;
     min-height: 100vh;
 }

@@ -64,15 +64,17 @@ def get_activity_suggestion(request):
             latitude = data.get('latitude')
             longitude = data.get('longitude')
             max_activities = int(data.get('max_activities', 5))  # Allow client to specify max activities
+            activity_preferences = data.get('activities', {})  # Get user activity preferences
             
             # Validate input
             if not latitude or not longitude:
                 return JsonResponse({'error': 'Missing coordinates'}, status=400)
 
-            # Create a cleaner cache key by rounding coordinates
+            # Create a cleaner cache key by rounding coordinates (include preferences in cache)
             lat_rounded = round(float(latitude), 4)
             lng_rounded = round(float(longitude), 4)
-            cache_key = f'multi_activity_{lat_rounded}_{lng_rounded}_{max_activities}'
+            prefs_key = '_'.join([k for k, v in activity_preferences.items() if v]) if activity_preferences else 'all'
+            cache_key = f'multi_activity_{lat_rounded}_{lng_rounded}_{max_activities}_{prefs_key}'
             
             cached_result = cache.get(cache_key)
             if cached_result:
@@ -85,7 +87,7 @@ def get_activity_suggestion(request):
                 return JsonResponse({'error': 'Failed to get weather data'}, status=500)
 
             # Get multiple activity suggestions from AI
-            activities = get_multiple_activities_from_ai(weather_data, max_activities)
+            activities = get_multiple_activities_from_ai(weather_data, max_activities, activity_preferences)
             print(f"Suggested activities: {activities}")
             
             # Get nearby places for all activities (with threading for performance)
@@ -117,27 +119,51 @@ def get_activity_suggestion(request):
 
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
-def get_multiple_activities_from_ai(weather_data, max_activities=5):
+def get_multiple_activities_from_ai(weather_data, max_activities=5, activity_preferences=None):
     """Get multiple activity suggestions from OpenAI with fallback"""
     try:
         if not openai.api_key:
             print("OpenAI API key not found, using fallback")
-            return get_fallback_multiple_activities(weather_data, max_activities)
+            return get_fallback_multiple_activities(weather_data, max_activities, activity_preferences)
+        
+        # Build preference context
+        enabled_preferences = []
+        if activity_preferences:
+            if activity_preferences.get('outdoorAdventure'):
+                enabled_preferences.append('outdoor adventures (parks, hiking, sports, outdoor activities)')
+            if activity_preferences.get('indoorRelaxation'):
+                enabled_preferences.append('indoor relaxation (cafes, spas, libraries, quiet indoor spaces)')
+            if activity_preferences.get('culturalExploration'):
+                enabled_preferences.append('cultural exploration (museums, galleries, historical sites, cultural centers)')
+            if activity_preferences.get('culinaryDelights'):
+                enabled_preferences.append('culinary delights (restaurants, food markets, cooking classes, bakeries)')
+        
+        preference_text = ""
+        if enabled_preferences:
+            preference_text = f"""
+        User Preferences (focus on these categories):
+        {', '.join(enabled_preferences)}
+        """
+        else:
+            preference_text = "User has no specific preferences - suggest a variety of activities."
         
         prompt = f"""
-        Given the weather conditions, suggest {max_activities} different activities for someone to do.
+        Given the weather conditions and user preferences, suggest {max_activities} different activities for someone to do.
         
         Weather: {weather_data['weather'][0]['description']}
         Temperature: {weather_data['main']['temp']}°C
         Location: {weather_data.get('name', 'Unknown')}
         Humidity: {weather_data['main'].get('humidity', 0)}%
         
+        {preference_text}
+        
         Rules:
         1. Respond with ONLY activity keywords separated by commas
-        2. Use Google Maps searchable terms (e.g., "restaurant", "museum", "park", "cafe", "shopping mall", "cinema")
-        3. Consider both indoor and outdoor options based on weather
-        4. Provide exactly {max_activities} different activities
-        5. No explanations, just the comma-separated keywords
+        2. Use Google Maps searchable terms (e.g., "restaurant", "museum", "park", "cafe", "shopping mall", "cinema", "spa", "gallery")
+        3. Prioritize activities matching user preferences
+        4. Consider weather when suggesting outdoor vs indoor activities
+        5. Provide exactly {max_activities} different activities
+        6. No explanations, just the comma-separated keywords
         
         Example format: restaurant, museum, park, cafe, shopping mall
         """
@@ -157,13 +183,13 @@ def get_multiple_activities_from_ai(weather_data, max_activities=5):
         
         if len(valid_activities) < 2:  # If we don't get enough valid activities
             print("Not enough valid activities from AI, using fallback")
-            return get_fallback_multiple_activities(weather_data, max_activities)
+            return get_fallback_multiple_activities(weather_data, max_activities, activity_preferences)
         
         return valid_activities[:max_activities]  # Ensure we don't exceed max
         
     except Exception as e:
         print("OpenAI API error:", str(e))
-        return get_fallback_multiple_activities(weather_data, max_activities)
+        return get_fallback_multiple_activities(weather_data, max_activities, activity_preferences)
 
 def parse_activities_from_response(activity_text):
     """Parse activities from AI response text"""
@@ -212,28 +238,63 @@ def filter_valid_activities(activities):
     
     return valid_activities
 
-def get_fallback_multiple_activities(weather_data, max_activities=5):
-    """Fallback multiple activity suggestions based on weather"""
+def get_fallback_multiple_activities(weather_data, max_activities=5, activity_preferences=None):
+    """Fallback multiple activity suggestions based on weather and preferences"""
     try:
         temp = weather_data['main']['temp']
         weather_main = weather_data['weather'][0]['main'].lower()
         humidity = weather_data['main'].get('humidity', 50)
         
-        activities = []
+        # Define activities by category
+        outdoor_activities = ['park', 'hiking trail', 'outdoor sports', 'garden', 'beach']
+        indoor_relaxation = ['cafe', 'spa', 'library', 'bookstore', 'tea house']
+        cultural_activities = ['museum', 'gallery', 'theater', 'historical site', 'cultural center']
+        culinary_activities = ['restaurant', 'food market', 'bakery', 'wine bar', 'cooking school']
         
-        # Weather-based activity selection
+        available_activities = []
+        
+        # Add activities based on user preferences
+        if activity_preferences:
+            if activity_preferences.get('outdoorAdventure'):
+                available_activities.extend(outdoor_activities)
+            if activity_preferences.get('indoorRelaxation'):
+                available_activities.extend(indoor_relaxation)
+            if activity_preferences.get('culturalExploration'):
+                available_activities.extend(cultural_activities)
+            if activity_preferences.get('culinaryDelights'):
+                available_activities.extend(culinary_activities)
+        
+        # If no preferences or empty preferences, include all
+        if not available_activities:
+            available_activities = outdoor_activities + indoor_relaxation + cultural_activities + culinary_activities
+        
+        # Weather-based filtering
         if 'rain' in weather_main or 'storm' in weather_main:
-            activities = ['museum', 'cafe', 'shopping mall', 'cinema', 'library']
+            # Prioritize indoor activities in bad weather
+            weather_filtered = [act for act in available_activities if act in indoor_relaxation + cultural_activities + culinary_activities]
+            if len(weather_filtered) < max_activities:
+                weather_filtered.extend([act for act in available_activities if act not in weather_filtered])
         elif temp > 30:  # Very hot
-            activities = ['museum', 'shopping mall', 'cafe', 'cinema', 'ice cream shop']
-        elif temp > 20:  # Warm
-            activities = ['park', 'restaurant', 'cafe', 'museum', 'shopping']
-        elif temp > 10:  # Cool
-            activities = ['restaurant', 'cafe', 'museum', 'shopping mall', 'bar']
-        else:  # Cold
-            activities = ['cafe', 'restaurant', 'museum', 'cinema', 'shopping mall']
+            # Mix of indoor and shaded outdoor
+            weather_filtered = [act for act in available_activities if act in indoor_relaxation + cultural_activities + culinary_activities]
+            weather_filtered.extend([act for act in available_activities if act in outdoor_activities and 'park' in act])
+        elif temp > 20:  # Warm - good for all activities
+            weather_filtered = available_activities
+        elif temp < 5:  # Very cold
+            # Mostly indoor activities
+            weather_filtered = [act for act in available_activities if act in indoor_relaxation + cultural_activities + culinary_activities]
+        else:
+            weather_filtered = available_activities
         
-        return activities[:max_activities]
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_activities = []
+        for activity in weather_filtered:
+            if activity not in seen:
+                seen.add(activity)
+                unique_activities.append(activity)
+        
+        return unique_activities[:max_activities]
         
     except Exception as e:
         print(f"Fallback error: {e}")
