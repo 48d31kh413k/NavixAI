@@ -1,38 +1,333 @@
-.App {
-  text-align: center;
+/* App.css */
+.app {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.app-header {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.nav-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+.nav-brand h1 {
+    margin: 0;
+    color: #333;
+    font-size: 2em;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
-.App-link {
-  color: #61dafb;
+.nav-brand p {
+    margin: 0;
+    color: #666;
+    font-size: 0.9em;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.nav-links {
+    display: flex;
+    gap: 20px;
+}
+
+.nav-link {
+    text-decoration: none;
+    color: #333;
+    padding: 10px 20px;
+    border-radius: 25px;
+    background: rgba(255, 255, 255, 0.7);
+    transition: all 0.3s ease;
+    font-weight: 500;
+    border: 2px solid transparent;
+}
+
+.nav-link:hover {
+    background: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border-color: #667eea;
+}
+
+.main-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 30px 20px;
+    min-height: calc(100vh - 100px);
+}
+
+.weather-banner {
+    background: linear-gradient(135deg, #74b9ff, #0984e3);
+    color: white;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.weather-banner h3 {
+    margin: 0 0 15px 0;
+    font-size: 1.2em;
+}
+
+.weather-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.weather-location,
+.weather-temp,
+.weather-desc {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.weather-temp {
+    font-size: 1.2em;
+    font-weight: 600;
+}
+
+.weather-desc {
+    text-transform: capitalize;
+}
+
+.selected-activities-display {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    margin: 30px 0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.selected-activities-display h3 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 1.5em;
+}
+
+.activity-places {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.activity-section {
+    border: 2px solid #f0f0f0;
+    border-radius: 12px;
+    padding: 20px;
+    background: #fafafa;
+}
+
+.activity-section h4 {
+    color: #333;
+    margin: 0 0 15px 0;
+    font-size: 1.2em;
+    text-transform: capitalize;
+}
+
+.places-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.place-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.place-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border-color: #667eea;
+}
+
+.place-info {
+    flex: 1;
+}
+
+.place-info h5 {
+    margin: 0 0 5px 0;
+    color: #333;
+    font-size: 1.1em;
+}
+
+.place-info p {
+    margin: 0 0 5px 0;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.place-info span {
+    color: #f39c12;
+    font-size: 0.9em;
+}
+
+.place-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.like-btn,
+.dislike-btn {
+    width: 45px;
+    height: 45px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2em;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.like-btn {
+    background: #e8f5e8;
+    color: #4CAF50;
+}
+
+.like-btn:hover {
+    background: #4CAF50;
+    color: white;
+    transform: scale(1.1);
+}
+
+.dislike-btn {
+    background: #fff0f0;
+    color: #f44336;
+}
+
+.dislike-btn:hover {
+    background: #f44336;
+    color: white;
+    transform: scale(1.1);
+}
+
+.personalization-notice {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    margin: 20px 0;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.personalization-notice p {
+    margin: 0;
+    font-weight: 500;
+}
+
+.loading-activities {
+    text-align: center;
+    padding: 40px;
+    background: white;
+    border-radius: 15px;
+    margin: 20px 0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.loading-activities p {
+    color: #666;
+    font-size: 1.1em;
+    margin: 0;
+}
+
+.error-message {
+    background: white;
+    border: 2px solid #ff4757;
+    border-radius: 15px;
+    padding: 30px;
+    text-align: center;
+    margin: 20px 0;
+    box-shadow: 0 4px 20px rgba(255, 71, 87, 0.2);
+}
+
+.error-message h2 {
+    color: #ff4757;
+    margin-bottom: 10px;
+}
+
+.error-message p {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.error-message button {
+    background: #ff4757;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.error-message button:hover {
+    background: #ff3742;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3);
+}
+
+@media (max-width: 768px) {
+    .nav-bar {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px 20px;
+    }
+    
+    .nav-links {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .main-content {
+        padding: 20px 15px;
+    }
+    
+    .weather-info {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+    
+    .place-item {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .place-actions {
+        justify-content: center;
+    }
+    
+    .nav-brand h1 {
+        font-size: 1.5em;
+    }
 }

@@ -1,0 +1,352 @@
+.user-history {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #f8f9fa;
+    min-height: 100vh;
+}
+
+.history-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.history-header h2 {
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.history-header p {
+    color: #666;
+    margin: 0;
+}
+
+.tabs {
+    display: flex;
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.tabs button {
+    flex: 1;
+    padding: 15px 20px;
+    border: none;
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #666;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+}
+
+.tabs button:hover {
+    background: #f8f9fa;
+    color: #333;
+}
+
+.tabs button.active {
+    color: #4CAF50;
+    border-bottom-color: #4CAF50;
+    background: #f8fff8;
+}
+
+.tab-content {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* History Section */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-header h3 {
+    margin: 0;
+    color: #333;
+}
+
+.clear-btn {
+    background: #ff4757;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.3s ease;
+}
+
+.clear-btn:hover {
+    background: #ff3742;
+}
+
+.export-btn {
+    background: #2196F3;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    margin-left: 10px;
+    transition: background 0.3s ease;
+}
+
+.export-btn:hover {
+    background: #1976D2;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+}
+
+.empty-state p {
+    margin: 10px 0;
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.history-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border-left: 4px solid #ddd;
+    transition: all 0.3s ease;
+}
+
+.history-item.like {
+    border-left-color: #4CAF50;
+    background: #f8fff8;
+}
+
+.history-item.dislike {
+    border-left-color: #ff4757;
+    background: #fff8f8;
+}
+
+.history-icon {
+    font-size: 1.5em;
+    margin-right: 15px;
+    min-width: 40px;
+    text-align: center;
+}
+
+.history-details {
+    flex: 1;
+}
+
+.place-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.place-info {
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.action-text {
+    font-size: 0.85em;
+    color: #888;
+}
+
+.history-time {
+    font-size: 0.8em;
+    color: #999;
+    text-align: right;
+}
+
+/* Liked Places Section */
+.places-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.place-card {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.place-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.place-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.place-header h4 {
+    margin: 0;
+    color: #333;
+    flex: 1;
+    margin-right: 10px;
+}
+
+.place-score {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.score-number {
+    font-size: 0.8em;
+    color: #666;
+}
+
+.place-details {
+    margin-bottom: 12px;
+}
+
+.place-activity,
+.place-location,
+.place-rating {
+    font-size: 0.9em;
+    color: #666;
+    margin: 4px 0;
+}
+
+.place-date {
+    font-size: 0.8em;
+    color: #999;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 10px;
+}
+
+/* Preferences Section */
+.preferences-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.preference-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.pref-icon {
+    font-size: 1.5em;
+    margin-right: 15px;
+    min-width: 40px;
+    text-align: center;
+}
+
+.pref-name {
+    flex: 1;
+    font-weight: 500;
+    color: #333;
+    margin-right: 20px;
+}
+
+.pref-score {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 120px;
+}
+
+.score-bar {
+    width: 60px;
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.score-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+    transition: width 0.3s ease;
+}
+
+.score-text {
+    font-size: 0.9em;
+    color: #666;
+    min-width: 35px;
+}
+
+.preferences-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+@media (max-width: 768px) {
+    .user-history {
+        padding: 15px;
+    }
+    
+    .tabs {
+        flex-direction: column;
+    }
+    
+    .tabs button {
+        border-bottom: 1px solid #e0e0e0;
+        border-radius: 0;
+    }
+    
+    .tabs button.active {
+        border-bottom-color: #4CAF50;
+    }
+    
+    .places-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .preferences-actions {
+        flex-direction: column;
+    }
+    
+    .history-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .history-time {
+        align-self: flex-end;
+    }
+}
