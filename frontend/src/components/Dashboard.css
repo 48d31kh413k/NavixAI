@@ -220,7 +220,45 @@
     font-weight: 500;
 }
 
-/* Category Filter */
+/* Filters */
+.filters-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 30px;
+    gap: 30px;
+}
+
+.category-filter {
+    flex: 1;
+}
+
+.category-filter h3, .sort-filter h3 {
+    margin: 0 0 15px 0;
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #333;
+}
+
+.sort-filter {
+    min-width: 200px;
+}
+
+.sort-select {
+    width: 100%;
+    padding: 10px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1em;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+}
+
+.sort-select:focus {
+    outline: none;
+    border-color: #ff6b35;
+}
 
 /* Category Filter */
 .category-filter {
@@ -312,12 +350,19 @@
     position: absolute;
     top: 12px;
     right: 12px;
-    background: rgba(76, 175, 80, 0.9);
     color: white;
     padding: 4px 8px;
     border-radius: 12px;
     font-size: 0.75em;
     font-weight: 500;
+}
+
+.preference-indicator.liked {
+    background: rgba(76, 175, 80, 0.9);
+}
+
+.preference-indicator.disliked {
+    background: rgba(244, 67, 54, 0.9);
 }
 
 .activity-content {

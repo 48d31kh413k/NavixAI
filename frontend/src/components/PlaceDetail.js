@@ -11,6 +11,7 @@ const PlaceDetail = () => {
     const [loading, setLoading] = useState(true);
     const [isLiked, setIsLiked] = useState(false);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+    const [loadingDetails, setLoadingDetails] = useState(false);
 
     // Generate grey placeholder image data URL
     const getGreyPlaceholder = (width = 800, height = 400) => {
@@ -61,6 +62,12 @@ const PlaceDetail = () => {
                     const isPlaceLiked = likedPlaces.some(p => p.place_id === placeData.place_id);
                     setIsLiked(isPlaceLiked);
                     
+                    // Always fetch additional details if we have a place_id but missing critical info
+                    if (placeData.place_id && (!placeData.opening_hours || !placeData.reviews || !placeData.formatted_phone_number)) {
+                        console.log('Fetching additional place details for:', placeData.name);
+                        fetchPlaceDetailsFromBackend(placeData.place_id);
+                    }
+                    
                     setLoading(false);
                 } else {
                     // Fallback: Try to find place in stored activities or use mock data
@@ -100,6 +107,41 @@ const PlaceDetail = () => {
 
         fetchPlaceData();
     }, [placeId, location.state]);
+
+    const fetchPlaceDetailsFromBackend = async (placeId) => {
+        try {
+            setLoadingDetails(true);
+            console.log('Fetching place details from backend for place_id:', placeId);
+            const response = await fetch(`http://localhost:8000/api/place-details/${placeId}/`);
+            
+            if (response.ok) {
+                const detailedPlace = await response.json();
+                console.log('Received place details:', detailedPlace);
+                
+                setPlace(prevPlace => {
+                    const updatedPlace = {
+                        ...prevPlace,
+                        ...detailedPlace,
+                        // Preserve existing data but prioritize new details
+                        opening_hours: detailedPlace.opening_hours || prevPlace.opening_hours,
+                        reviews: detailedPlace.reviews || prevPlace.reviews,
+                        photos: detailedPlace.photos || prevPlace.photos,
+                        formatted_phone_number: detailedPlace.formatted_phone_number || prevPlace.formatted_phone_number,
+                        website: detailedPlace.website || prevPlace.website
+                    };
+                    
+                    console.log('Updated place data:', updatedPlace);
+                    return updatedPlace;
+                });
+            } else {
+                console.error('Failed to fetch place details, status:', response.status);
+            }
+        } catch (error) {
+            console.error('Error fetching place details:', error);
+        } finally {
+            setLoadingDetails(false);
+        }
+    };
 
     const getMockPlaceData = (id) => {
         return {
@@ -162,25 +204,36 @@ const PlaceDetail = () => {
     };
 
     const formatOpeningHours = () => {
-        if (!place?.opening_hours?.weekday_text) {
+        // If we have real opening hours data, use it
+        if (place?.opening_hours?.weekday_text && place.opening_hours.weekday_text.length > 0) {
+            return place.opening_hours.weekday_text.map(dayText => {
+                const [day, ...hoursParts] = dayText.split(': ');
+                return {
+                    day: day,
+                    hours: hoursParts.join(': ')
+                };
+            });
+        }
+        
+        // If currently loading details, show loading message
+        if (loadingDetails) {
             return [
-                { day: 'Monday', hours: '6:00 AM - 6:00 PM' },
-                { day: 'Tuesday', hours: '6:00 AM - 6:00 PM' },
-                { day: 'Wednesday', hours: '6:00 AM - 6:00 PM' },
-                { day: 'Thursday', hours: '6:00 AM - 6:00 PM' },
-                { day: 'Friday', hours: '9:00 AM - 8:00 PM' },
-                { day: 'Saturday', hours: '8:00 AM - 8:00 PM' },
-                { day: 'Sunday', hours: '8:00 AM - 6:00 PM' }
+                { day: 'Loading', hours: 'Fetching real opening hours...' }
             ];
         }
         
-        return place.opening_hours.weekday_text.map(dayText => {
-            const [day, ...hoursParts] = dayText.split(': ');
-            return {
-                day: day,
-                hours: hoursParts.join(': ')
-            };
-        });
+        // If no opening hours available and we have a place_id, try to fetch from backend
+        if (place?.place_id && !place.opening_hours && !loadingDetails) {
+            fetchPlaceDetailsFromBackend(place.place_id);
+            return [
+                { day: 'Loading', hours: 'Fetching opening hours...' }
+            ];
+        }
+        
+        // Final fallback if no data is available
+        return [
+            { day: 'Hours', hours: 'Opening hours not available' }
+        ];
     };
 
     if (loading) {
@@ -336,24 +389,23 @@ const PlaceDetail = () => {
                     </div>
                     
                     <div className="reviews-list">
-                        {(place.userReviews || [
+                        {(place.reviews && place.reviews.length > 0 ? place.reviews : [
                             {
-                                id: 1,
-                                author: 'Alex Johnson',
-                                date: 'April 15, 2024',
+                                author_name: 'Alex Johnson',
+                                relative_time_description: '2 weeks ago',
                                 rating: 5,
-                                comment: 'Great place! Highly recommend visiting.'
+                                text: 'Great place! Highly recommend visiting.'
                             }
-                        ]).map((review) => (
-                            <div key={review.id} className="review-item">
+                        ]).map((review, index) => (
+                            <div key={index} className="review-item">
                                 <div className="review-header">
-                                    <h4>{review.author}</h4>
-                                    <span className="review-date">{review.date}</span>
+                                    <h4>{review.author_name}</h4>
+                                    <span className="review-date">{review.relative_time_description}</span>
                                 </div>
                                 <div className="review-rating">
                                     {'⭐'.repeat(review.rating)}
                                 </div>
-                                <p className="review-comment">{review.comment}</p>
+                                <p className="review-comment">{review.text}</p>
                             </div>
                         ))}
                     </div>

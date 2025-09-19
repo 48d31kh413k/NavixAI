@@ -12,6 +12,8 @@ const Dashboard = ({ appSettings }) => {
     const [loading, setLoading] = useState(true);
     const [currentLocation, setCurrentLocation] = useState(null);
     const [selectedCategory, setSelectedCategory] = useState('All Activities');
+    const [userPreferenceState, setUserPreferenceState] = useState({}); // Track preference state
+    const [sortBy, setSortBy] = useState('rating'); // Add sorting state
 
     // Generate grey placeholder image data URL
     const getGreyPlaceholder = (width = 400, height = 200) => {
@@ -46,7 +48,13 @@ const Dashboard = ({ appSettings }) => {
     // Handle preference updates to backend
     const updateUserPreference = async (place, preference) => {
         try {
-            const response = await axios.post('http://localhost:8000/api/update_user_preference/', {
+            // Update local state immediately for UI feedback
+            setUserPreferenceState(prev => ({
+                ...prev,
+                [place.place_id]: preference
+            }));
+
+            const response = await axios.post('http://localhost:8000/api/user-preference/', {
                 place_id: place.place_id,
                 place_name: place.name,
                 activity_type: place.activity_name || place.type,
@@ -56,7 +64,7 @@ const Dashboard = ({ appSettings }) => {
             
             if (response.data.success) {
                 console.log(`Successfully ${preference}d place:`, place.name);
-                // Also update local preferences for immediate UI feedback
+                // Also update local preferences for consistency
                 if (preference === 'like') {
                     userPreferences.likeActivity(place.activity_name || place.name);
                 } else {
@@ -82,6 +90,13 @@ const Dashboard = ({ appSettings }) => {
         'Relaxing Indoors',
         'Cultural Experiences',
         'Family Fun'
+    ];
+
+    const sortOptions = [
+        { value: 'rating', label: 'Highest Rated' },
+        { value: 'reviews', label: 'Most Reviews' },
+        { value: 'distance', label: 'Nearest' },
+        { value: 'preference', label: 'My Preferences' }
     ];
 
     // Transform backend activity data to show individual places with real names
@@ -271,11 +286,46 @@ const Dashboard = ({ appSettings }) => {
         }
     };
 
-    const getFilteredActivities = () => {
-        if (selectedCategory === 'All Activities') {
-            return activities;
+    // Filter and sort activities
+    const getFilteredAndSortedActivities = () => {
+        let filtered = activities;
+        
+        // Filter by category
+        if (selectedCategory !== 'All Activities') {
+            filtered = activities.filter(activity => activity.category === selectedCategory);
         }
-        return activities.filter(activity => activity.category === selectedCategory);
+        
+        // Sort activities
+        return filtered.sort((a, b) => {
+            switch (sortBy) {
+                case 'rating':
+                    return (b.rating || 0) - (a.rating || 0);
+                    
+                case 'reviews':
+                    return (b.user_ratings_total || 0) - (a.user_ratings_total || 0);
+                    
+                case 'distance':
+                    // Assuming we have distance data, for now use random
+                    return Math.random() - 0.5;
+                    
+                case 'preference':
+                    const scoreA = userPreferences.getActivityScore(a.activity_name || a.name);
+                    const scoreB = userPreferences.getActivityScore(b.activity_name || b.name);
+                    const prefA = userPreferenceState[a.place_id] === 'like' ? 1 : 
+                                 userPreferenceState[a.place_id] === 'dislike' ? -1 : 0;
+                    const prefB = userPreferenceState[b.place_id] === 'like' ? 1 : 
+                                 userPreferenceState[b.place_id] === 'dislike' ? -1 : 0;
+                    return (scoreB + prefB) - (scoreA + prefA);
+                    
+                default:
+                    return 0;
+            }
+        });
+    };
+
+    const getFilteredActivities = () => {
+        // Use the new sorting function instead
+        return getFilteredAndSortedActivities();
     };
 
     const getTemperature = (temp) => {
@@ -392,16 +442,34 @@ const Dashboard = ({ appSettings }) => {
                 </div>
                 
                 {/* Category Filter */}
-                <div className="category-filter">
-                    {activityCategories.map(category => (
-                        <button
-                            key={category}
-                            className={`category-btn ${selectedCategory === category ? 'active' : ''}`}
-                            onClick={() => setSelectedCategory(category)}
+                <div className="filters-container">
+                    <div className="category-filter">
+                        <h3>Categories</h3>
+                        {activityCategories.map(category => (
+                            <button
+                                key={category}
+                                className={`category-btn ${selectedCategory === category ? 'active' : ''}`}
+                                onClick={() => setSelectedCategory(category)}
+                            >
+                                {category}
+                            </button>
+                        ))}
+                    </div>
+                    
+                    <div className="sort-filter">
+                        <h3>Sort By</h3>
+                        <select 
+                            className="sort-select"
+                            value={sortBy} 
+                            onChange={(e) => setSortBy(e.target.value)}
                         >
-                            {category}
-                        </button>
-                    ))}
+                            {sortOptions.map(option => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 {/* Activity Cards Grid */}
@@ -415,9 +483,18 @@ const Dashboard = ({ appSettings }) => {
                                     onError={(e) => handleImageError(e)}
                                 />
                                 <div className="activity-category">{activity.category}</div>
-                                {userPreferences.getActivityScore(activity.activity_name || activity.name) > 0 && (
-                                    <div className="preference-indicator">❤️ Liked</div>
-                                )}
+                                {(() => {
+                                    const score = userPreferences.getActivityScore(activity.activity_name || activity.name);
+                                    const preference = userPreferenceState[activity.place_id] || 
+                                                     (score > 0 ? 'liked' : score < 0 ? 'disliked' : null);
+                                    
+                                    if (preference === 'liked') {
+                                        return <div className="preference-indicator liked">❤️ Liked</div>;
+                                    } else if (preference === 'disliked') {
+                                        return <div className="preference-indicator disliked">👎 Disliked</div>;
+                                    }
+                                    return null;
+                                })()}
                             </div>
                             <div className="activity-content">
                                 <h3>{activity.name}</h3>

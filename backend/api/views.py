@@ -427,6 +427,22 @@ def get_nearby_places(latitude, longitude, activity_type, radius=15000):
                         radius=radius,
                         type=type_mapping[activity_type]
                     )
+                    # Enhance places with detailed photos if they have few photos
+                    for place in places_result.get('results', []):
+                        if place.get('photos') and len(place['photos']) < 3:
+                            # Try to get more photos from place details
+                            try:
+                                place_id = place.get('place_id')
+                                if place_id:
+                                    place_details = gmaps.place(
+                                        place_id=place_id,
+                                        fields=['photos']
+                                    )
+                                    if place_details.get('result', {}).get('photos'):
+                                        place['photos'] = place_details['result']['photos']
+                            except:
+                                pass
+                    
                     places_results.extend(places_result.get('results', []))
                 except:
                     pass
@@ -463,20 +479,22 @@ def get_nearby_places(latitude, longitude, activity_type, radius=15000):
 def get_place_photos(photos):
     """Get photo URLs from place photos"""
     if not photos or not GOOGLE_MAPS_API_KEY:
-        return ['https://via.placeholder.com/400x300']
+        return ['https://via.placeholder.com/800x600']
     
     try:
         photo_urls = []
-        # Get up to 5 photos instead of 3
-        for photo in photos[:5]:
+        # Get up to 8 photos with higher quality
+        for photo in photos[:8]:
             photo_reference = photo.get('photo_reference')
             if photo_reference:
-                photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_reference}&key={GOOGLE_MAPS_API_KEY}"
+                # Use higher resolution for better quality
+                photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference={photo_reference}&key={GOOGLE_MAPS_API_KEY}"
                 photo_urls.append(photo_url)
         
-        return photo_urls if photo_urls else ['https://via.placeholder.com/400x300']
-    except:
-        return ['https://via.placeholder.com/400x300']
+        return photo_urls if photo_urls else ['https://via.placeholder.com/800x600']
+    except Exception as e:
+        print(f"Error getting place photos: {e}")
+        return ['https://via.placeholder.com/800x600']
 
 def get_mock_places(activity_type):
     """Enhanced mock places data for testing"""
@@ -529,7 +547,7 @@ def get_place_details(request, place_id):
                     'place_id', 'name', 'vicinity', 'formatted_address', 
                     'formatted_phone_number', 'website', 'rating', 
                     'user_ratings_total', 'price_level', 'opening_hours',
-                    'photos', 'reviews', 'types', 'url', 'international_phone_number'
+                    'photo', 'reviews', 'url', 'international_phone_number'
                 ]
             )
             
@@ -580,8 +598,7 @@ def get_place_details(request, place_id):
                 'price_level': place.get('price_level'),
                 'opening_hours': opening_hours,
                 'photos': photos,
-                'reviews': reviews,
-                'types': place.get('types', [])
+                'reviews': reviews
             }
             
             # Cache for 1 hour
@@ -653,5 +670,66 @@ def update_user_preference(request):
         except Exception as e:
             print(f"User preference error: {e}")
             return JsonResponse({'error': 'Failed to update preference'}, status=500)
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+@csrf_exempt
+def get_user_preferences(request):
+    """Get all user preferences (liked/disliked places)"""
+    if request.method == 'GET':
+        try:
+            user_id = request.GET.get('user_id', 'anonymous')
+            
+            # Get user's preference history
+            history_key = f'user_history_{user_id}'
+            user_history = cache.get(history_key, [])
+            
+            # Separate liked and disliked
+            liked = [p for p in user_history if p.get('preference') == 'like']
+            disliked = [p for p in user_history if p.get('preference') == 'dislike']
+            
+            return JsonResponse({
+                'success': True,
+                'preferences': {
+                    'liked': liked,
+                    'disliked': disliked
+                },
+                'total': len(user_history)
+            })
+            
+        except Exception as e:
+            print(f"Get preferences error: {e}")
+            return JsonResponse({'error': 'Failed to get preferences'}, status=500)
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+@csrf_exempt
+def delete_user_preference(request, place_id):
+    """Delete a user preference for a specific place"""
+    if request.method == 'DELETE':
+        try:
+            user_id = request.GET.get('user_id', 'anonymous')
+            
+            # Remove individual preference
+            cache_key = f'user_pref_{user_id}_{place_id}'
+            cache.delete(cache_key)
+            
+            # Update user's preference history
+            history_key = f'user_history_{user_id}'
+            user_history = cache.get(history_key, [])
+            
+            # Remove preference for this place
+            user_history = [p for p in user_history if p.get('place_id') != place_id]
+            
+            cache.set(history_key, user_history, 86400 * 30)  # 30 days
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Preference deleted successfully'
+            })
+            
+        except Exception as e:
+            print(f"Delete preference error: {e}")
+            return JsonResponse({'error': 'Failed to delete preference'}, status=500)
     
     return JsonResponse({'error': 'Invalid request method'}, status=400)

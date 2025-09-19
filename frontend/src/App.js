@@ -5,6 +5,7 @@ import Settings from './components/Settings';
 import Sidebar from './components/Sidebar';
 import UserHistory from './components/UserHistory';
 import PlaceDetail from './components/PlaceDetail';
+import UserPreferences from './components/UserPreferences';
 import './App.css';
 
 function App() {
@@ -79,6 +80,7 @@ function App() {
                     <Routes>
                         <Route path="/" element={<Dashboard appSettings={appSettings} />} />
                         <Route path="/preferences" element={<Settings appSettings={appSettings} updateAppSettings={updateAppSettings} />} />
+                        <Route path="/user-preferences" element={<UserPreferences />} />
                         <Route path="/history" element={<UserHistory />} />
                         <Route path="/place/:placeId" element={<PlaceDetail />} />
                     </Routes>

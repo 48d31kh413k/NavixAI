@@ -13,10 +13,16 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             description: 'Overview and activities'
         },
         {
+            path: '/user-preferences',
+            icon: '❤️',
+            label: 'My Preferences',
+            description: 'Liked and disliked places'
+        },
+        {
             path: '/preferences',
             icon: '⚙️',
-            label: 'Preferences',
-            description: 'Settings and customization'
+            label: 'Settings',
+            description: 'App configuration'
         }
     ];
 
