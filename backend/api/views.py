@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 import os
 import openai
 import json  
-from django.http import JsonResponse
 import googlemaps
 from django.conf import settings
 from datetime import datetime, timedelta
@@ -468,8 +467,8 @@ def get_place_photos(photos):
     
     try:
         photo_urls = []
-        # Get up to 3 photos
-        for photo in photos[:3]:
+        # Get up to 5 photos instead of 3
+        for photo in photos[:5]:
             photo_reference = photo.get('photo_reference')
             if photo_reference:
                 photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference={photo_reference}&key={GOOGLE_MAPS_API_KEY}"
@@ -505,3 +504,154 @@ def get_mock_places(activity_type):
     }
     
     return mock_places.get(activity_type, mock_places.get('restaurant', []))
+
+@csrf_exempt
+def get_place_details(request, place_id):
+    """Get detailed information about a specific place"""
+    if request.method == 'GET':
+        try:
+            if not GOOGLE_MAPS_API_KEY:
+                return JsonResponse({'error': 'Google Maps API key not configured'}, status=500)
+            
+            # Check cache first
+            cache_key = f'place_details_{place_id}'
+            cached_details = cache.get(cache_key)
+            if cached_details:
+                return JsonResponse(cached_details)
+            
+            # Initialize Google Maps client
+            gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
+            
+            # Get place details from Google Places API
+            place_details = gmaps.place(
+                place_id=place_id,
+                fields=[
+                    'place_id', 'name', 'vicinity', 'formatted_address', 
+                    'formatted_phone_number', 'website', 'rating', 
+                    'user_ratings_total', 'price_level', 'opening_hours',
+                    'photos', 'reviews', 'types', 'url', 'international_phone_number'
+                ]
+            )
+            
+            if not place_details or 'result' not in place_details:
+                return JsonResponse({'error': 'Place not found'}, status=404)
+            
+            place = place_details['result']
+            
+            # Format photos - get more photos for place details
+            photos = []
+            if place.get('photos'):
+                for photo in place['photos'][:8]:  # Get up to 8 photos for place details
+                    photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference={photo['photo_reference']}&key={GOOGLE_MAPS_API_KEY}"
+                    photos.append(photo_url)
+            
+            # Format opening hours
+            opening_hours = None
+            if place.get('opening_hours'):
+                opening_hours = {
+                    'open_now': place['opening_hours'].get('open_now', False),
+                    'weekday_text': place['opening_hours'].get('weekday_text', [])
+                }
+            
+            # Format reviews
+            reviews = []
+            if place.get('reviews'):
+                for review in place['reviews'][:5]:  # Limit to 5 reviews
+                    reviews.append({
+                        'author_name': review.get('author_name', ''),
+                        'rating': review.get('rating', 0),
+                        'text': review.get('text', ''),
+                        'time': review.get('time', 0),
+                        'relative_time_description': review.get('relative_time_description', '')
+                    })
+            
+            # Build response
+            result = {
+                'place_id': place.get('place_id'),
+                'name': place.get('name'),
+                'vicinity': place.get('vicinity'),
+                'formatted_address': place.get('formatted_address'),
+                'formatted_phone_number': place.get('formatted_phone_number'),
+                'international_phone_number': place.get('international_phone_number'),
+                'website': place.get('website'),
+                'url': place.get('url'),
+                'rating': place.get('rating'),
+                'user_ratings_total': place.get('user_ratings_total'),
+                'price_level': place.get('price_level'),
+                'opening_hours': opening_hours,
+                'photos': photos,
+                'reviews': reviews,
+                'types': place.get('types', [])
+            }
+            
+            # Cache for 1 hour
+            cache.set(cache_key, result, 3600)
+            
+            return JsonResponse(result)
+            
+        except Exception as e:
+            print(f"Place details error: {e}")
+            return JsonResponse({'error': 'Failed to get place details'}, status=500)
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=400)
+
+@csrf_exempt  
+def update_user_preference(request):
+    """Update user preference (like/dislike) for a place"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body) if request.content_type == 'application/json' else request.POST
+            
+            place_id = data.get('place_id')
+            place_name = data.get('place_name')
+            activity_type = data.get('activity_type')
+            preference = data.get('preference')  # 'like' or 'dislike'
+            user_id = data.get('user_id', 'anonymous')  # Default to anonymous user
+            
+            if not all([place_id, preference]):
+                return JsonResponse({'error': 'Missing required fields'}, status=400)
+            
+            if preference not in ['like', 'dislike']:
+                return JsonResponse({'error': 'Invalid preference value'}, status=400)
+            
+            # Store preference in cache/database
+            # For now, we'll use cache. In production, you'd use a proper database
+            cache_key = f'user_pref_{user_id}_{place_id}'
+            preference_data = {
+                'place_id': place_id,
+                'place_name': place_name,
+                'activity_type': activity_type,
+                'preference': preference,
+                'timestamp': datetime.now().isoformat(),
+                'user_id': user_id
+            }
+            
+            # Store individual preference
+            cache.set(cache_key, preference_data, 86400 * 30)  # 30 days
+            
+            # Update user's preference history
+            history_key = f'user_history_{user_id}'
+            user_history = cache.get(history_key, [])
+            
+            # Remove any existing preference for this place
+            user_history = [p for p in user_history if p.get('place_id') != place_id]
+            
+            # Add new preference
+            user_history.append(preference_data)
+            
+            # Keep only last 100 preferences
+            user_history = user_history[-100:]
+            
+            cache.set(history_key, user_history, 86400 * 30)  # 30 days
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Successfully {preference}d place',
+                'preference': preference_data
+            })
+            
+        except Exception as e:
+            print(f"User preference error: {e}")
+            return JsonResponse({'error': 'Failed to update preference'}, status=500)
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=400)

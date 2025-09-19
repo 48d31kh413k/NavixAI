@@ -285,6 +285,11 @@
     height: 100%;
     object-fit: cover;
     transition: transform 0.3s ease;
+    background-color: #f0f0f0;
+}
+
+.activity-image img[data-fallback-attempted="true"] {
+    border: 1px solid #ddd;
 }
 
 .activity-card:hover .activity-image img {

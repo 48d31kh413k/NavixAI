@@ -59,17 +59,118 @@
     color: #ff6b35;
 }
 
-/* Hero Image */
+/* Photo Gallery */
 .place-hero {
     width: 100%;
-    height: 300px;
     overflow: hidden;
 }
 
-.place-hero img {
+.photo-gallery {
+    width: 100%;
+}
+
+.main-photo {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    overflow: hidden;
+}
+
+.main-photo img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    background-color: #f0f0f0;
+}
+
+.main-photo img[data-fallback-attempted="true"] {
+    border: 1px solid #ddd;
+}
+
+.photo-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    transition: background 0.3s ease;
+    z-index: 2;
+}
+
+.photo-nav:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.photo-nav.prev {
+    left: 10px;
+}
+
+.photo-nav.next {
+    right: 10px;
+}
+
+.photo-counter {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+}
+
+.photo-thumbnails {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    overflow-x: auto;
+    background: #f8f9fa;
+}
+
+.photo-thumbnails .thumbnail {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 6px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.3s ease, border 0.3s ease;
+    border: 2px solid transparent;
+    background-color: #f0f0f0;
+}
+
+.photo-thumbnails .thumbnail[data-fallback-attempted="true"] {
+    border: 1px solid #ddd;
+}
+
+.photo-thumbnails .thumbnail:hover {
+    opacity: 1;
+}
+
+.photo-thumbnails .thumbnail.active {
+    opacity: 1;
+    border-color: #ff6b35;
+}
+
+.more-photos {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    background: #e0e0e0;
+    border-radius: 6px;
+    font-size: 10px;
+    color: #666;
+    text-align: center;
 }
 
 /* Main Content */

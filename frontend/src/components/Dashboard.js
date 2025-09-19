@@ -13,6 +13,69 @@ const Dashboard = ({ appSettings }) => {
     const [currentLocation, setCurrentLocation] = useState(null);
     const [selectedCategory, setSelectedCategory] = useState('All Activities');
 
+    // Generate grey placeholder image data URL
+    const getGreyPlaceholder = (width = 400, height = 200) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        
+        // Fill with grey background
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(0, 0, width, height);
+        
+        // Add centered text
+        ctx.fillStyle = '#999';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('No Image Available', width / 2, height / 2);
+        
+        return canvas.toDataURL('image/png');
+    };
+
+    // Handle image load errors
+    const handleImageError = (event, fallbackSrc = null) => {
+        const img = event.target;
+        if (img.src !== getGreyPlaceholder() && !img.hasAttribute('data-fallback-attempted')) {
+            img.setAttribute('data-fallback-attempted', 'true');
+            img.src = fallbackSrc || getGreyPlaceholder();
+        }
+    };
+
+    // Handle preference updates to backend
+    const updateUserPreference = async (place, preference) => {
+        try {
+            const response = await axios.post('http://localhost:8000/api/update_user_preference/', {
+                place_id: place.place_id,
+                place_name: place.name,
+                activity_type: place.activity_name || place.type,
+                preference: preference,
+                user_id: 'anonymous' // You can implement proper user authentication later
+            });
+            
+            if (response.data.success) {
+                console.log(`Successfully ${preference}d place:`, place.name);
+                // Also update local preferences for immediate UI feedback
+                if (preference === 'like') {
+                    userPreferences.likeActivity(place.activity_name || place.name);
+                } else {
+                    userPreferences.dislikeActivity(place.activity_name || place.name);
+                }
+                // Force re-render to show updated preferences
+                setActivities([...activities]);
+            }
+        } catch (error) {
+            console.error(`Error updating ${preference} preference:`, error);
+            // Still update local preferences as fallback
+            if (preference === 'like') {
+                userPreferences.likeActivity(place.activity_name || place.name);
+            } else {
+                userPreferences.dislikeActivity(place.activity_name || place.name);
+            }
+        }
+    };
+
     const activityCategories = [
         'All Activities',
         'Outdoor Adventures', 
@@ -21,27 +84,39 @@ const Dashboard = ({ appSettings }) => {
         'Family Fun'
     ];
 
-    // Transform backend activity data to match frontend format
+    // Transform backend activity data to show individual places with real names
     const transformActivitiesFromBackend = (backendActivities) => {
-        return backendActivities.map((activity, index) => {
-            const firstPlace = activity.places && activity.places.length > 0 ? activity.places[0] : null;
-            return {
-                id: index + 1,
-                name: activity.activity_name || 'Activity',
-                category: mapActivityToCategory(activity.activity_name),
-                description: firstPlace ? firstPlace.description || `Discover ${activity.activity_name} in your area` : `Explore ${activity.activity_name}`,
-                image: firstPlace && firstPlace.photos && firstPlace.photos.length > 0 
-                    ? firstPlace.photos[0] 
-                    : `https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=250&fit=crop`, // fallback image
-                rating: firstPlace ? firstPlace.rating || 4.0 : 4.0,
-                reviews: firstPlace ? firstPlace.user_ratings_total || 0 : 0,
-                duration: '1-3 hours', // Default duration
-                difficulty: 'Easy',
-                activity_name: activity.activity_name,
-                place_count: activity.places ? activity.places.length : 0,
-                places: activity.places || []
-            };
+        const allPlaces = [];
+        let placeId = 1;
+        
+        backendActivities.forEach((activity) => {
+            if (activity.places && activity.places.length > 0) {
+                activity.places.forEach((place) => {
+                    allPlaces.push({
+                        id: placeId++,
+                        name: place.name || 'Unknown Place', // Real place name
+                        category: mapActivityToCategory(activity.activity_name),
+                        description: `${place.name} - ${place.vicinity || 'Great location to visit'}`,
+                        image: place.photos && place.photos.length > 0 
+                            ? place.photos[0] 
+                            : `https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=250&fit=crop`,
+                        photos: place.photos || [], // All photos array
+                        rating: place.rating || 4.0,
+                        reviews: place.user_ratings_total || 0,
+                        duration: '1-3 hours',
+                        difficulty: 'Easy',
+                        activity_name: activity.activity_name,
+                        place_count: 1,
+                        places: [place], // The actual place data
+                        place_id: place.place_id,
+                        vicinity: place.vicinity,
+                        types: place.types || []
+                    });
+                });
+            }
         });
+        
+        return allPlaces;
     };
 
     // Map activity names to our frontend categories
@@ -334,7 +409,11 @@ const Dashboard = ({ appSettings }) => {
                     {getFilteredActivities().map(activity => (
                         <div key={activity.id} className="activity-card">
                             <div className="activity-image">
-                                <img src={activity.image} alt={activity.name} />
+                                <img 
+                                    src={activity.image || getGreyPlaceholder()} 
+                                    alt={activity.name}
+                                    onError={(e) => handleImageError(e)}
+                                />
                                 <div className="activity-category">{activity.category}</div>
                                 {userPreferences.getActivityScore(activity.activity_name || activity.name) > 0 && (
                                     <div className="preference-indicator">❤️ Liked</div>
@@ -362,21 +441,15 @@ const Dashboard = ({ appSettings }) => {
                                     <div className="activity-preferences">
                                         <button 
                                             className="like-btn"
-                                            onClick={() => {
-                                                userPreferences.likeActivity(activity.activity_name || activity.name);
-                                                // Update activity preference indicator
-                                            }}
-                                            title="Like this activity type"
+                                            onClick={() => updateUserPreference(activity, 'like')}
+                                            title={`Like ${activity.name || activity.activity_name}`}
                                         >
                                             👍
                                         </button>
                                         <button 
                                             className="dislike-btn"
-                                            onClick={() => {
-                                                userPreferences.dislikeActivity(activity.activity_name || activity.name);
-                                                // Update activity preference indicator
-                                            }}
-                                            title="Dislike this activity type"
+                                            onClick={() => updateUserPreference(activity, 'dislike')}
+                                            title={`Dislike ${activity.name || activity.activity_name}`}
                                         >
                                             👎
                                         </button>
@@ -387,9 +460,9 @@ const Dashboard = ({ appSettings }) => {
                                             // Store current activities in localStorage for place detail access
                                             localStorage.setItem('recent_activities', JSON.stringify(activities));
                                             
-                                            // Navigate with place data if available
-                                            const place = activity.places && activity.places.length > 0 ? activity.places[0] : null;
-                                            navigate(`/place/${activity.id}`, {
+                                            // Navigate with the actual place data
+                                            const place = activity.places[0]; // This is the actual place
+                                            navigate(`/place/${activity.place_id || activity.id}`, {
                                                 state: {
                                                     place: place,
                                                     activityName: activity.activity_name

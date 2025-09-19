@@ -10,6 +10,37 @@ const PlaceDetail = () => {
     const [place, setPlace] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isLiked, setIsLiked] = useState(false);
+    const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+
+    // Generate grey placeholder image data URL
+    const getGreyPlaceholder = (width = 800, height = 400) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        
+        // Fill with grey background
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(0, 0, width, height);
+        
+        // Add centered text
+        ctx.fillStyle = '#999';
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('No Image Available', width / 2, height / 2);
+        
+        return canvas.toDataURL('image/png');
+    };
+
+    // Handle image load errors
+    const handleImageError = (event) => {
+        const img = event.target;
+        if (!img.hasAttribute('data-fallback-attempted')) {
+            img.setAttribute('data-fallback-attempted', 'true');
+            img.src = getGreyPlaceholder();
+        }
+    };
 
     useEffect(() => {
         // Get place data from navigation state or fetch from activities
@@ -76,7 +107,7 @@ const PlaceDetail = () => {
             name: 'Mount Cinder Viewpoint',
             vicinity: 'Cascade Mountains, OR',
             description: 'Mount Cinder Viewpoint offers breathtaking panoramic views of the entire Cascade Mountain range, including the iconic peaks of Mount Hood and Mount Jefferson. It\'s a prime location for photography, bird watching, and enjoying serene sunsets. The well-maintained trail to the viewpoint is accessible for most skill levels, making it a popular spot for both casual visitors and avid hikers. The area here is crisp and clean, providing a refreshing escape from city life. Visitors often bring picnics to enjoy the natural beauty.',
-            photos: ['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop'],
+            photos: [getGreyPlaceholder()],
             rating: 4.7,
             user_ratings_total: 53,
             opening_hours: {
@@ -114,6 +145,20 @@ const PlaceDetail = () => {
         } catch (error) {
             console.error('Error updating place preference:', error);
         }
+    };
+
+    const nextPhoto = () => {
+        const photos = place.photos || [place.image];
+        setCurrentPhotoIndex((prev) => (prev + 1) % photos.length);
+    };
+
+    const prevPhoto = () => {
+        const photos = place.photos || [place.image];
+        setCurrentPhotoIndex((prev) => (prev - 1 + photos.length) % photos.length);
+    };
+
+    const goToPhoto = (index) => {
+        setCurrentPhotoIndex(index);
     };
 
     const formatOpeningHours = () => {
@@ -165,12 +210,51 @@ const PlaceDetail = () => {
                 </div>
             </div>
 
-            {/* Hero Image */}
+            {/* Photo Gallery */}
             <div className="place-hero">
-                <img 
-                    src={place.photos?.[0] || place.image || 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop'} 
-                    alt={place.name} 
-                />
+                <div className="photo-gallery">
+                    <div className="main-photo">
+                        <img 
+                            src={place.photos?.[currentPhotoIndex] || place.image || getGreyPlaceholder()} 
+                            alt={`${place.name} - Photo ${currentPhotoIndex + 1}`}
+                            onError={handleImageError}
+                        />
+                        {place.photos && place.photos.length > 1 && (
+                            <>
+                                <button className="photo-nav prev" onClick={prevPhoto}>
+                                    ‹
+                                </button>
+                                <button className="photo-nav next" onClick={nextPhoto}>
+                                    ›
+                                </button>
+                                <div className="photo-counter">
+                                    {currentPhotoIndex + 1} / {place.photos.length}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                    
+                    {/* Photo Thumbnails */}
+                    {place.photos && place.photos.length > 1 && (
+                        <div className="photo-thumbnails">
+                            {place.photos.slice(0, 6).map((photo, index) => (
+                                <img
+                                    key={index}
+                                    src={photo || getGreyPlaceholder(60, 60)}
+                                    alt={`${place.name} thumbnail ${index + 1}`}
+                                    className={`thumbnail ${index === currentPhotoIndex ? 'active' : ''}`}
+                                    onClick={() => goToPhoto(index)}
+                                    onError={handleImageError}
+                                />
+                            ))}
+                            {place.photos.length > 6 && (
+                                <div className="more-photos">
+                                    +{place.photos.length - 6} more
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Main Content */}
