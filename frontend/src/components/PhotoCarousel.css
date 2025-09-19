@@ -47,9 +47,10 @@
     justify-content: center;
     z-index: 10;
     transition: all 0.3s ease;
-    opacity: 0;
+    opacity: 0.8; /* Changed from 0 to 0.8 to make always visible */
     user-select: none;
     outline: none;
+    pointer-events: auto; /* Ensure pointer events work */
 }
 
 .carousel-arrow:focus {

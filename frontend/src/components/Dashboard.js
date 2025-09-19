@@ -431,7 +431,11 @@ const Dashboard = ({ appSettings }) => {
                         <div key={activity.id} className="activity-card">
                             <div className="activity-image">
                                 <PhotoCarousel 
-                                    photos={activity.photos && activity.photos.length > 0 ? activity.photos : []}
+                                    photos={(() => {
+                                        const photos = activity.photos && activity.photos.length > 0 ? activity.photos : [];
+                                        console.log(`Activity "${activity.name}" has ${photos.length} photos:`, photos);
+                                        return photos;
+                                    })()}
                                     altText={activity.name}
                                     className="activity-carousel"
                                 />

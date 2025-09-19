@@ -37,21 +37,37 @@ const PhotoCarousel = ({ photos = [], altText = "Place photo", className = "" })
 
     // Use placeholder if no photos available
     const displayPhotos = photos && photos.length > 0 ? photos : [getGreyPlaceholder()];
+    
+    console.log('PhotoCarousel render:', { 
+        photos: photos?.length || 0, 
+        displayPhotos: displayPhotos.length, 
+        currentIndex 
+    });
 
     const goToPrevious = useCallback((e) => {
+        console.log('goToPrevious called', e);
         if (e) {
             e.preventDefault();
             e.stopPropagation(); // Prevent triggering parent click events
         }
-        setCurrentIndex(prev => prev === 0 ? displayPhotos.length - 1 : prev - 1);
+        setCurrentIndex(prev => {
+            const newIndex = prev === 0 ? displayPhotos.length - 1 : prev - 1;
+            console.log('Previous: currentIndex', prev, '-> newIndex', newIndex);
+            return newIndex;
+        });
     }, [displayPhotos.length]);
 
     const goToNext = useCallback((e) => {
+        console.log('goToNext called', e);
         if (e) {
             e.preventDefault();
             e.stopPropagation(); // Prevent triggering parent click events
         }
-        setCurrentIndex(prev => prev === displayPhotos.length - 1 ? 0 : prev + 1);
+        setCurrentIndex(prev => {
+            const newIndex = prev === displayPhotos.length - 1 ? 0 : prev + 1;
+            console.log('Next: currentIndex', prev, '-> newIndex', newIndex);
+            return newIndex;
+        });
     }, [displayPhotos.length]);
 
     const goToSlide = (index, e) => {
