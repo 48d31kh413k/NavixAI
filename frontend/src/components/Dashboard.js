@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import userPreferences from '../utils/UserPreferences';
-import { convertTemperature, convertDistance, formatTemperature, formatDistance, convertSpeed, formatSpeed } from '../utils/UnitConverter';
+import { convertTemperature, convertSpeed } from '../utils/UnitConverter';
+import PhotoCarousel from './PhotoCarousel';
 import './Dashboard.css';
 
 const Dashboard = ({ appSettings }) => {
@@ -10,40 +11,9 @@ const Dashboard = ({ appSettings }) => {
     const [weatherData, setWeatherData] = useState(null);
     const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [currentLocation, setCurrentLocation] = useState(null);
     const [selectedCategory, setSelectedCategory] = useState('All Activities');
     const [userPreferenceState, setUserPreferenceState] = useState({}); // Track preference state
     const [sortBy, setSortBy] = useState('rating'); // Add sorting state
-
-    // Generate grey placeholder image data URL
-    const getGreyPlaceholder = (width = 400, height = 200) => {
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        
-        // Fill with grey background
-        ctx.fillStyle = '#f0f0f0';
-        ctx.fillRect(0, 0, width, height);
-        
-        // Add centered text
-        ctx.fillStyle = '#999';
-        ctx.font = '16px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('No Image Available', width / 2, height / 2);
-        
-        return canvas.toDataURL('image/png');
-    };
-
-    // Handle image load errors
-    const handleImageError = (event, fallbackSrc = null) => {
-        const img = event.target;
-        if (img.src !== getGreyPlaceholder() && !img.hasAttribute('data-fallback-attempted')) {
-            img.setAttribute('data-fallback-attempted', 'true');
-            img.src = fallbackSrc || getGreyPlaceholder();
-        }
-    };
 
     // Handle preference updates to backend
     const updateUserPreference = async (place, preference) => {
@@ -112,9 +82,6 @@ const Dashboard = ({ appSettings }) => {
                         name: place.name || 'Unknown Place', // Real place name
                         category: mapActivityToCategory(activity.activity_name),
                         description: `${place.name} - ${place.vicinity || 'Great location to visit'}`,
-                        image: place.photos && place.photos.length > 0 
-                            ? place.photos[0] 
-                            : `https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=250&fit=crop`,
                         photos: place.photos || [], // All photos array
                         rating: place.rating || 4.0,
                         reviews: place.user_ratings_total || 0,
@@ -196,7 +163,6 @@ const Dashboard = ({ appSettings }) => {
             navigator.geolocation.getCurrentPosition(
                 async (position) => {
                     const { latitude, longitude } = position.coords;
-                    setCurrentLocation({ lat: latitude, lng: longitude });
                     
                     try {
                         console.log('Making API call to:', 'http://127.0.0.1:8000/api/activity-suggestion/');
@@ -354,19 +320,6 @@ const Dashboard = ({ appSettings }) => {
         return appSettings?.units?.distance === 'Miles (mi)' ? 'mph' : 'km/h';
     };
 
-    const getVisibility = () => {
-        if (!weatherData?.visibility) return 6;
-        const visibilityInKm = weatherData.visibility / 1000; // Convert meters to km
-        if (appSettings?.units?.distance === 'Miles (mi)') {
-            return Math.round(convertDistance(visibilityInKm, 'Kilometers (km)', 'Miles (mi)'));
-        }
-        return Math.round(visibilityInKm);
-    };
-
-    const getDistanceUnit = () => {
-        return appSettings?.units?.distance === 'Miles (mi)' ? 'mi' : 'km';
-    };
-
     if (loading) {
         return (
             <div className="dashboard-loading">
@@ -477,10 +430,10 @@ const Dashboard = ({ appSettings }) => {
                     {getFilteredActivities().map(activity => (
                         <div key={activity.id} className="activity-card">
                             <div className="activity-image">
-                                <img 
-                                    src={activity.image || getGreyPlaceholder()} 
-                                    alt={activity.name}
-                                    onError={(e) => handleImageError(e)}
+                                <PhotoCarousel 
+                                    photos={activity.photos && activity.photos.length > 0 ? activity.photos : []}
+                                    altText={activity.name}
+                                    className="activity-carousel"
                                 />
                                 <div className="activity-category">{activity.category}</div>
                                 {(() => {
