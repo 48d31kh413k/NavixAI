@@ -14,6 +14,7 @@ const Dashboard = ({ appSettings }) => {
     const [selectedCategory, setSelectedCategory] = useState('All Activities');
     const [userPreferenceState, setUserPreferenceState] = useState({}); // Track preference state
     const [sortBy, setSortBy] = useState('rating'); // Add sorting state
+    const [searchTerm, setSearchTerm] = useState('');
 
     // Handle preference updates to backend
     const updateUserPreference = async (place, preference) => {
@@ -256,9 +257,20 @@ const Dashboard = ({ appSettings }) => {
     const getFilteredAndSortedActivities = () => {
         let filtered = activities;
         
+        // Filter by search term
+        if (searchTerm.trim()) {
+            filtered = filtered.filter(activity => 
+                activity.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                activity.vicinity?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                activity.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                activity.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                activity.activity_name?.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
+        
         // Filter by category
         if (selectedCategory !== 'All Activities') {
-            filtered = activities.filter(activity => activity.category === selectedCategory);
+            filtered = filtered.filter(activity => activity.category === selectedCategory);
         }
         
         // Sort activities
@@ -337,10 +349,15 @@ const Dashboard = ({ appSettings }) => {
                     <h1>Dashboard</h1>
                     <div className="header-actions">
                         <div className="search-bar">
-                            <input type="text" placeholder="Search activities or places..." />
+                            <input 
+                                type="text" 
+                                placeholder="Search activities or places..." 
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
                             <button className="search-btn">🔍</button>
                         </div>
-                        <div className="user-profile">
+                        <div className="user-profile" onClick={() => navigate('/preferences')}>
                             <div className="user-avatar">👤</div>
                         </div>
                     </div>

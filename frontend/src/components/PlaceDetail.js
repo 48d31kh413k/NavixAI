@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import userPreferences from '../utils/UserPreferences';
+import PhotoCarousel from './PhotoCarousel';
 import './PlaceDetail.css';
 
 const PlaceDetail = () => {
@@ -10,7 +11,6 @@ const PlaceDetail = () => {
     const [place, setPlace] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isLiked, setIsLiked] = useState(false);
-    const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [loadingDetails, setLoadingDetails] = useState(false);
 
     // Generate grey placeholder image data URL
@@ -34,14 +34,33 @@ const PlaceDetail = () => {
         return canvas.toDataURL('image/png');
     };
 
-    // Handle image load errors
-    const handleImageError = (event) => {
-        const img = event.target;
-        if (!img.hasAttribute('data-fallback-attempted')) {
-            img.setAttribute('data-fallback-attempted', 'true');
-            img.src = getGreyPlaceholder();
-        }
-    };
+    const getMockPlaceData = useCallback((id) => {
+        return {
+            place_id: id,
+            name: 'Mount Cinder Viewpoint',
+            vicinity: 'Cascade Mountains, OR',
+            description: 'Mount Cinder Viewpoint offers breathtaking panoramic views of the entire Cascade Mountain range, including the iconic peaks of Mount Hood and Mount Jefferson. It\'s a prime location for photography, bird watching, and enjoying serene sunsets. The well-maintained trail to the viewpoint is accessible for most skill levels, making it a popular spot for both casual visitors and avid hikers. The area here is crisp and clean, providing a refreshing escape from city life. Visitors often bring picnics to enjoy the natural beauty.',
+            photos: [getGreyPlaceholder()],
+            rating: 4.7,
+            user_ratings_total: 53,
+            opening_hours: {
+                weekday_text: [
+                    'Monday: 6:00 AM – 8:00 PM',
+                    'Tuesday: 6:00 AM – 8:00 PM',
+                    'Wednesday: 6:00 AM – 8:00 PM',
+                    'Thursday: 6:00 AM – 8:00 PM',
+                    'Friday: 6:00 AM – 9:00 PM',
+                    'Saturday: 5:00 AM – 9:00 PM',
+                    'Sunday: 5:00 AM – 8:00 PM'
+                ]
+            },
+            formatted_address: '2500 Viewpoint Rd, Cascade Mountains, OR 97000',
+            formatted_phone_number: '(555) 123-4567',
+            website: 'mountcinderviewpoint.org',
+            types: ['tourist_attraction', 'park'],
+            activityName: 'park'
+        };
+    }, []);
 
     useEffect(() => {
         // Get place data from navigation state or fetch from activities
@@ -106,7 +125,7 @@ const PlaceDetail = () => {
         };
 
         fetchPlaceData();
-    }, [placeId, location.state]);
+    }, [placeId, location.state, getMockPlaceData]);
 
     const fetchPlaceDetailsFromBackend = async (placeId) => {
         try {
@@ -143,34 +162,6 @@ const PlaceDetail = () => {
         }
     };
 
-    const getMockPlaceData = (id) => {
-        return {
-            place_id: id,
-            name: 'Mount Cinder Viewpoint',
-            vicinity: 'Cascade Mountains, OR',
-            description: 'Mount Cinder Viewpoint offers breathtaking panoramic views of the entire Cascade Mountain range, including the iconic peaks of Mount Hood and Mount Jefferson. It\'s a prime location for photography, bird watching, and enjoying serene sunsets. The well-maintained trail to the viewpoint is accessible for most skill levels, making it a popular spot for both casual visitors and avid hikers. The area here is crisp and clean, providing a refreshing escape from city life. Visitors often bring picnics to enjoy the natural beauty.',
-            photos: [getGreyPlaceholder()],
-            rating: 4.7,
-            user_ratings_total: 53,
-            opening_hours: {
-                weekday_text: [
-                    'Monday: 6:00 AM - 6:00 PM',
-                    'Tuesday: 6:00 AM - 6:00 PM',
-                    'Wednesday: 6:00 AM - 6:00 PM',
-                    'Thursday: 6:00 AM - 6:00 PM',
-                    'Friday: 9:00 AM - 8:00 PM',
-                    'Saturday: 8:00 AM - 8:00 PM',
-                    'Sunday: 8:00 AM - 6:00 PM'
-                ]
-            },
-            formatted_address: '2500 Viewpoint Rd, Cascade Mountains, OR 97000',
-            formatted_phone_number: '(555) 123-4567',
-            website: 'mountcinderviewpoint.org',
-            types: ['tourist_attraction', 'park'],
-            activityName: 'park'
-        };
-    };
-
     const handleLikeToggle = () => {
         if (!place) return;
         
@@ -187,20 +178,6 @@ const PlaceDetail = () => {
         } catch (error) {
             console.error('Error updating place preference:', error);
         }
-    };
-
-    const nextPhoto = () => {
-        const photos = place.photos || [place.image];
-        setCurrentPhotoIndex((prev) => (prev + 1) % photos.length);
-    };
-
-    const prevPhoto = () => {
-        const photos = place.photos || [place.image];
-        setCurrentPhotoIndex((prev) => (prev - 1 + photos.length) % photos.length);
-    };
-
-    const goToPhoto = (index) => {
-        setCurrentPhotoIndex(index);
     };
 
     const formatOpeningHours = () => {
@@ -265,49 +242,10 @@ const PlaceDetail = () => {
 
             {/* Photo Gallery */}
             <div className="place-hero">
-                <div className="photo-gallery">
-                    <div className="main-photo">
-                        <img 
-                            src={place.photos?.[currentPhotoIndex] || place.image || getGreyPlaceholder()} 
-                            alt={`${place.name} - Photo ${currentPhotoIndex + 1}`}
-                            onError={handleImageError}
-                        />
-                        {place.photos && place.photos.length > 1 && (
-                            <>
-                                <button className="photo-nav prev" onClick={prevPhoto}>
-                                    ‹
-                                </button>
-                                <button className="photo-nav next" onClick={nextPhoto}>
-                                    ›
-                                </button>
-                                <div className="photo-counter">
-                                    {currentPhotoIndex + 1} / {place.photos.length}
-                                </div>
-                            </>
-                        )}
-                    </div>
-                    
-                    {/* Photo Thumbnails */}
-                    {place.photos && place.photos.length > 1 && (
-                        <div className="photo-thumbnails">
-                            {place.photos.slice(0, 6).map((photo, index) => (
-                                <img
-                                    key={index}
-                                    src={photo || getGreyPlaceholder(60, 60)}
-                                    alt={`${place.name} thumbnail ${index + 1}`}
-                                    className={`thumbnail ${index === currentPhotoIndex ? 'active' : ''}`}
-                                    onClick={() => goToPhoto(index)}
-                                    onError={handleImageError}
-                                />
-                            ))}
-                            {place.photos.length > 6 && (
-                                <div className="more-photos">
-                                    +{place.photos.length - 6} more
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
+                <PhotoCarousel 
+                    photos={place.photos || [place.image || getGreyPlaceholder()]}
+                    altText={place.name}
+                />
             </div>
 
             {/* Main Content */}

@@ -69,6 +69,11 @@
 .user-profile {
     display: flex;
     align-items: center;
+    cursor: pointer;
+}
+
+.user-profile:hover .user-avatar {
+    background: #e0e0e0;
 }
 
 .user-avatar {

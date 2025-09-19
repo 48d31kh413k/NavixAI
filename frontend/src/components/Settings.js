@@ -3,7 +3,7 @@ import userPreferences from '../utils/UserPreferences';
 import './Settings.css';
 
 const Settings = ({ appSettings, updateAppSettings }) => {
-    const [preferences, setPreferences] = useState(appSettings || {
+    const defaultSettings = {
         activities: {
             outdoorAdventure: true,
             indoorRelaxation: true,
@@ -14,25 +14,38 @@ const Settings = ({ appSettings, updateAppSettings }) => {
             recommendationRadius: 'Local Area (5km)',
             useCurrentLocation: true
         },
-        notifications: {
-            weatherAlerts: true,
-            newRecommendations: true,
-            dailyDigest: false
-        },
         units: {
             temperature: 'Celsius (°C)',
             distance: 'Kilometers (km)'
-        },
-        privacy: {
-            shareData: false,
-            analytics: true
         }
+    };
+
+    const [preferences, setPreferences] = useState(() => {
+        // Ensure we always have a valid preferences object
+        if (appSettings && typeof appSettings === 'object') {
+            return {
+                ...defaultSettings,
+                ...appSettings,
+                // Ensure nested objects exist
+                activities: { ...defaultSettings.activities, ...(appSettings.activities || {}) },
+                location: { ...defaultSettings.location, ...(appSettings.location || {}) },
+                units: { ...defaultSettings.units, ...(appSettings.units || {}) }
+            };
+        }
+        return defaultSettings;
     });
 
     // Update local preferences when appSettings change
     useEffect(() => {
-        if (appSettings) {
-            setPreferences(appSettings);
+        if (appSettings && typeof appSettings === 'object') {
+            setPreferences(prev => ({
+                ...prev,
+                ...appSettings,
+                // Ensure nested objects exist
+                activities: { ...prev.activities, ...(appSettings.activities || {}) },
+                location: { ...prev.location, ...(appSettings.location || {}) },
+                units: { ...prev.units, ...(appSettings.units || {}) }
+            }));
         }
     }, [appSettings]);
 
@@ -103,14 +116,6 @@ const Settings = ({ appSettings, updateAppSettings }) => {
         setHasChanges(false);
     };
 
-    const handleDeleteAccount = () => {
-        if (window.confirm('Are you sure you want to delete your account? This action cannot be undone and will remove all your data.')) {
-            userPreferences.clearPreferences();
-            userPreferences.clearHistory();
-            alert('Account data has been deleted.');
-        }
-    };
-
     const ToggleSwitch = ({ checked, onChange, label, description }) => (
         <div className="setting-item">
             <div className="setting-info">
@@ -140,6 +145,11 @@ const Settings = ({ appSettings, updateAppSettings }) => {
             </select>
         </div>
     );
+
+    // Safety check to ensure preferences are properly initialized
+    if (!preferences || !preferences.location) {
+        return <div className="settings-loading">Loading preferences...</div>;
+    }
 
     return (
         <div className="settings">
@@ -211,40 +221,11 @@ const Settings = ({ appSettings, updateAppSettings }) => {
                     </p>
                     
                     <SelectDropdown
-                        value={preferences.location.recommendationRadius}
+                        value={preferences?.location?.recommendationRadius || 'Local Area (5km)'}
                         onChange={(value) => handleSelectChange('location', 'recommendationRadius', value)}
                         options={['Local Area (5km)', 'City Wide (25km)', 'Regional (50km)', 'Extended (100km)']}
                         label="Recommendation Radius"
                         description="Select how far you're willing to travel for activities."
-                    />
-                </div>
-
-                {/* Notification Settings */}
-                <div className="settings-section">
-                    <h3>Notification Settings</h3>
-                    <p className="section-description">
-                        Manage how and when you receive updates from WeatherWise Explorer.
-                    </p>
-                    
-                    <ToggleSwitch
-                        checked={preferences.notifications.weatherAlerts}
-                        onChange={() => handleToggleChange('notifications', 'weatherAlerts')}
-                        label="Weather Alerts"
-                        description="Get notifications for significant weather changes."
-                    />
-                    
-                    <ToggleSwitch
-                        checked={preferences.notifications.newRecommendations}
-                        onChange={() => handleToggleChange('notifications', 'newRecommendations')}
-                        label="New Recommendations"
-                        description="Receive alerts for new activity recommendations based on your preferences."
-                    />
-                    
-                    <ToggleSwitch
-                        checked={preferences.notifications.dailyDigest}
-                        onChange={() => handleToggleChange('notifications', 'dailyDigest')}
-                        label="Daily Digest"
-                        description="Get a daily summary of weather and recommended activities."
                     />
                 </div>
 
@@ -270,36 +251,6 @@ const Settings = ({ appSettings, updateAppSettings }) => {
                         label="Distance Unit"
                         description="Choose how distances should be displayed."
                     />
-                </div>
-
-                {/* Data & Privacy */}
-                <div className="settings-section">
-                    <h3>Data & Privacy</h3>
-                    <p className="section-description">
-                        Manage your account data and privacy settings.
-                    </p>
-                    
-                    <ToggleSwitch
-                        checked={preferences.privacy.shareData}
-                        onChange={() => handleToggleChange('privacy', 'shareData')}
-                        label="Share Usage Data"
-                        description="Help improve the app by sharing anonymous usage statistics."
-                    />
-                    
-                    <ToggleSwitch
-                        checked={preferences.privacy.analytics}
-                        onChange={() => handleToggleChange('privacy', 'analytics')}
-                        label="Analytics"
-                        description="Allow collection of analytics data to improve recommendations."
-                    />
-
-                    <div className="danger-zone">
-                        <h4>Danger Zone</h4>
-                        <p>Permanent actions that cannot be undone.</p>
-                        <button className="delete-account-btn" onClick={handleDeleteAccount}>
-                            Delete My Account
-                        </button>
-                    </div>
                 </div>
             </div>
 

@@ -21,14 +21,9 @@ function App() {
             culturalExploration: false,
             culinaryDelights: true
         },
-        notifications: {
-            weatherAlerts: true,
-            newRecommendations: true,
-            dailyDigest: false
-        },
-        privacy: {
-            shareData: false,
-            locationTracking: true
+        location: {
+            recommendationRadius: 'Local Area (5km)',
+            useCurrentLocation: true
         }
     });
 
