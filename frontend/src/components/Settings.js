@@ -7,7 +7,7 @@ const Settings = ({ appSettings, updateAppSettings }) => {
         activities: {
             outdoorAdventure: true,
             indoorRelaxation: true,
-            culturalExploration: false,
+            culturalExploration: true,
             culinaryDelights: true
         },
         location: {

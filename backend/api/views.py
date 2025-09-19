@@ -162,7 +162,8 @@ def get_multiple_activities_from_ai(weather_data, max_activities=5, activity_pre
         3. Prioritize activities matching user preferences
         4. Consider weather when suggesting outdoor vs indoor activities
         5. Provide exactly {max_activities} different activities
-        6. No explanations, just the comma-separated keywords
+        6. Include a diverse mix: outdoor activities, cultural venues (museums, galleries, theaters), dining, and relaxation spots
+        7. No explanations, just the comma-separated keywords
         
         Example format: restaurant, museum, park, cafe, shopping mall
         """
@@ -263,9 +264,19 @@ def get_fallback_multiple_activities(weather_data, max_activities=5, activity_pr
             if activity_preferences.get('culinaryDelights'):
                 available_activities.extend(culinary_activities)
         
-        # If no preferences or empty preferences, include all
+        # If no preferences or empty preferences, include all with balanced representation
         if not available_activities:
-            available_activities = outdoor_activities + indoor_relaxation + cultural_activities + culinary_activities
+            # Ensure balanced representation from each category
+            available_activities = []
+            # Add equal amounts from each category
+            available_activities.extend(outdoor_activities[:2])
+            available_activities.extend(indoor_relaxation[:2]) 
+            available_activities.extend(cultural_activities[:2])
+            available_activities.extend(culinary_activities[:2])
+            # Fill the rest randomly from all categories
+            all_activities = outdoor_activities + indoor_relaxation + cultural_activities + culinary_activities
+            remaining_activities = [act for act in all_activities if act not in available_activities]
+            available_activities.extend(remaining_activities)
         
         # Weather-based filtering
         if 'rain' in weather_main or 'storm' in weather_main:
@@ -297,7 +308,7 @@ def get_fallback_multiple_activities(weather_data, max_activities=5, activity_pr
         
     except Exception as e:
         print(f"Fallback error: {e}")
-        return ['restaurant', 'cafe', 'museum', 'park', 'shopping'][:max_activities]
+        return ['restaurant', 'cafe', 'museum', 'gallery', 'park', 'theater', 'shopping', 'spa'][:max_activities]
 
 def get_places_for_all_activities(latitude, longitude, activities, max_places_per_activity=3):
     """Get places for multiple activities using threading for better performance"""

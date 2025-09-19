@@ -13,7 +13,6 @@ const Dashboard = ({ appSettings }) => {
     const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState('All Activities');
     const [userPreferenceState, setUserPreferenceState] = useState({}); // Track preference state
-    const [sortBy, setSortBy] = useState('rating'); // Add sorting state
     const [searchTerm, setSearchTerm] = useState('');
 
     // Handle preference updates to backend
@@ -63,13 +62,6 @@ const Dashboard = ({ appSettings }) => {
         'Family Fun'
     ];
 
-    const sortOptions = [
-        { value: 'rating', label: 'Highest Rated' },
-        { value: 'reviews', label: 'Most Reviews' },
-        { value: 'distance', label: 'Nearest' },
-        { value: 'preference', label: 'My Preferences' }
-    ];
-
     // Transform backend activity data to show individual places with real names
     const transformActivitiesFromBackend = (backendActivities) => {
         const allPlaces = [];
@@ -105,6 +97,8 @@ const Dashboard = ({ appSettings }) => {
     // Map activity names to our frontend categories
     const mapActivityToCategory = (activityName) => {
         if (!activityName) return 'All Activities';
+        
+        console.log('Mapping activity to category:', activityName);
         
         const categoryMap = {
             // Outdoor Adventures
@@ -148,10 +142,12 @@ const Dashboard = ({ appSettings }) => {
         const lowerActivity = activityName.toLowerCase();
         for (const [key, category] of Object.entries(categoryMap)) {
             if (lowerActivity.includes(key)) {
+                console.log(`"${activityName}" -> "${category}" (matched "${key}")`);
                 return category;
             }
         }
         
+        console.log(`"${activityName}" -> "All Activities" (no match found)`);
         return 'All Activities';
     };
 
@@ -195,6 +191,14 @@ const Dashboard = ({ appSettings }) => {
                             // Transform backend activities to match frontend format
                             const transformedActivities = transformActivitiesFromBackend(activityResponse.data.activities);
                             console.log('Transformed activities:', transformedActivities);
+                            
+                            // Debug: Check categories
+                            const categoryCount = {};
+                            transformedActivities.forEach(activity => {
+                                const cat = activity.category;
+                                categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+                            });
+                            console.log('Activities by category:', categoryCount);
                             
                             // Sort activities by user preferences
                             const sortedActivities = userPreferences.sortActivitiesByPreference(transformedActivities);
@@ -253,7 +257,7 @@ const Dashboard = ({ appSettings }) => {
         }
     };
 
-    // Filter and sort activities
+    // Filter and sort activities with priority mixing
     const getFilteredAndSortedActivities = () => {
         let filtered = activities;
         
@@ -268,37 +272,63 @@ const Dashboard = ({ appSettings }) => {
             );
         }
         
-        // Filter by category
+        // Filter by category (if specific category selected)
         if (selectedCategory !== 'All Activities') {
             filtered = filtered.filter(activity => activity.category === selectedCategory);
+            // Sort by reviews if specific category
+            return filtered.sort((a, b) => {
+                return (b.user_ratings_total || 0) - (a.user_ratings_total || 0);
+            });
         }
         
-        // Sort activities
-        return filtered.sort((a, b) => {
-            switch (sortBy) {
-                case 'rating':
-                    return (b.rating || 0) - (a.rating || 0);
-                    
-                case 'reviews':
-                    return (b.user_ratings_total || 0) - (a.user_ratings_total || 0);
-                    
-                case 'distance':
-                    // Assuming we have distance data, for now use random
-                    return Math.random() - 0.5;
-                    
-                case 'preference':
-                    const scoreA = userPreferences.getActivityScore(a.activity_name || a.name);
-                    const scoreB = userPreferences.getActivityScore(b.activity_name || b.name);
-                    const prefA = userPreferenceState[a.place_id] === 'like' ? 1 : 
-                                 userPreferenceState[a.place_id] === 'dislike' ? -1 : 0;
-                    const prefB = userPreferenceState[b.place_id] === 'like' ? 1 : 
-                                 userPreferenceState[b.place_id] === 'dislike' ? -1 : 0;
-                    return (scoreB + prefB) - (scoreA + prefA);
-                    
-                default:
-                    return 0;
+        // For "All Activities", create priority mixed list
+        // First sort all activities by reviews within each category
+        const sortedByCategory = {};
+        filtered.forEach(activity => {
+            const category = activity.category || 'Other';
+            if (!sortedByCategory[category]) {
+                sortedByCategory[category] = [];
+            }
+            sortedByCategory[category].push(activity);
+        });
+        
+        // Sort each category by number of reviews
+        Object.keys(sortedByCategory).forEach(category => {
+            sortedByCategory[category].sort((a, b) => {
+                return (b.user_ratings_total || 0) - (a.user_ratings_total || 0);
+            });
+        });
+        
+        // Create mixed priority list with balanced representation
+        const mixedActivities = [];
+        
+        // Equal priority: 3 from each main category
+        const familyFun = sortedByCategory['Family Fun'] || [];
+        const relaxingIndoors = sortedByCategory['Relaxing Indoors'] || [];
+        const culturalExperiences = sortedByCategory['Cultural Experiences'] || [];
+        const outdoorAdventures = sortedByCategory['Outdoor Adventures'] || [];
+        
+        // Add 3 from each main category for balanced representation
+        mixedActivities.push(...familyFun.slice(0, 3));
+        mixedActivities.push(...relaxingIndoors.slice(0, 3));
+        mixedActivities.push(...culturalExperiences.slice(0, 3));
+        mixedActivities.push(...outdoorAdventures.slice(0, 3));
+        
+        // Add remaining activities from any other categories
+        Object.keys(sortedByCategory).forEach(category => {
+            if (!['Family Fun', 'Relaxing Indoors', 'Cultural Experiences', 'Outdoor Adventures'].includes(category)) {
+                mixedActivities.push(...sortedByCategory[category].slice(0, 2));
             }
         });
+        
+        // Shuffle the mixed activities to avoid grouping by category
+        const shuffled = [...mixedActivities];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        
+        return shuffled;
     };
 
     const getFilteredActivities = () => {
@@ -424,21 +454,6 @@ const Dashboard = ({ appSettings }) => {
                                 {category}
                             </button>
                         ))}
-                    </div>
-                    
-                    <div className="sort-filter">
-                        <h3>Sort By</h3>
-                        <select 
-                            className="sort-select"
-                            value={sortBy} 
-                            onChange={(e) => setSortBy(e.target.value)}
-                        >
-                            {sortOptions.map(option => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
                     </div>
                 </div>
 
