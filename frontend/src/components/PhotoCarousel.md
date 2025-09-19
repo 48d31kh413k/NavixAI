@@ -6,11 +6,13 @@ A React component that displays a carousel of photos with navigation controls an
 
 - **Multiple Photo Support**: Displays multiple photos in a carousel format
 - **Navigation Controls**: Left/right arrows for photo navigation
+- **Keyboard Navigation**: Arrow keys, Home, and End key support
 - **Photo Indicators**: Dots showing current photo position
 - **Photo Counter**: Shows current photo number (e.g., "2 / 5")
 - **Responsive Design**: Works on desktop and mobile devices
 - **Fallback Support**: Shows placeholder when no photos are available
 - **Error Handling**: Automatically handles broken image URLs
+- **Accessibility**: Full keyboard support and ARIA labels
 
 ## Usage
 
@@ -54,7 +56,12 @@ import PhotoCarousel from './PhotoCarousel';
 - **Multiple Photos**: Full carousel functionality enabled
 - **No Photos**: Displays grey placeholder with "No Image Available" text
 - **Mobile**: Touch-friendly controls with always-visible arrows
-- **Desktop**: Arrows appear on hover
+- **Desktop**: Arrows appear on hover or when focused
+- **Keyboard Navigation**: 
+  - `←` / `→` Arrow keys: Navigate between photos
+  - `Home`: Go to first photo
+  - `End`: Go to last photo
+  - `Tab`: Focus navigation controls
 
 ## Integration
 

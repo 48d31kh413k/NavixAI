@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './PhotoCarousel.css';
 
 const PhotoCarousel = ({ photos = [], altText = "Place photo", className = "" }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
+    const carouselRef = useRef(null);
 
     // Generate grey placeholder image data URL
     const getGreyPlaceholder = (width = 400, height = 200) => {
@@ -37,23 +38,74 @@ const PhotoCarousel = ({ photos = [], altText = "Place photo", className = "" })
     // Use placeholder if no photos available
     const displayPhotos = photos && photos.length > 0 ? photos : [getGreyPlaceholder()];
 
-    const goToPrevious = (e) => {
-        e.stopPropagation(); // Prevent triggering parent click events
-        setCurrentIndex(currentIndex === 0 ? displayPhotos.length - 1 : currentIndex - 1);
-    };
+    const goToPrevious = useCallback((e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation(); // Prevent triggering parent click events
+        }
+        setCurrentIndex(prev => prev === 0 ? displayPhotos.length - 1 : prev - 1);
+    }, [displayPhotos.length]);
 
-    const goToNext = (e) => {
-        e.stopPropagation(); // Prevent triggering parent click events
-        setCurrentIndex(currentIndex === displayPhotos.length - 1 ? 0 : currentIndex + 1);
-    };
+    const goToNext = useCallback((e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation(); // Prevent triggering parent click events
+        }
+        setCurrentIndex(prev => prev === displayPhotos.length - 1 ? 0 : prev + 1);
+    }, [displayPhotos.length]);
 
     const goToSlide = (index, e) => {
-        e.stopPropagation(); // Prevent triggering parent click events
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation(); // Prevent triggering parent click events
+        }
         setCurrentIndex(index);
     };
 
+    // Keyboard navigation
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            // Only handle keyboard events if the carousel is focused or its children are focused
+            if (!carouselRef.current || !carouselRef.current.contains(document.activeElement)) {
+                return;
+            }
+
+            switch (event.key) {
+                case 'ArrowLeft':
+                    event.preventDefault();
+                    goToPrevious();
+                    break;
+                case 'ArrowRight':
+                    event.preventDefault();
+                    goToNext();
+                    break;
+                case 'Home':
+                    event.preventDefault();
+                    setCurrentIndex(0);
+                    break;
+                case 'End':
+                    event.preventDefault();
+                    setCurrentIndex(displayPhotos.length - 1);
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [displayPhotos.length, goToNext, goToPrevious]);
+
     return (
-        <div className={`photo-carousel ${className}`}>
+        <div 
+            ref={carouselRef}
+            className={`photo-carousel ${className}`}
+            tabIndex="0"
+            role="img"
+            aria-label={`${altText} carousel, photo ${currentIndex + 1} of ${displayPhotos.length}`}
+        >
             <div className="carousel-container">
                 <img
                     src={displayPhotos[currentIndex]}
@@ -68,14 +120,18 @@ const PhotoCarousel = ({ photos = [], altText = "Place photo", className = "" })
                         <button 
                             className="carousel-arrow carousel-arrow-left" 
                             onClick={goToPrevious}
+                            onMouseDown={(e) => e.preventDefault()}
                             aria-label="Previous photo"
+                            type="button"
                         >
                             &#8249;
                         </button>
                         <button 
                             className="carousel-arrow carousel-arrow-right" 
                             onClick={goToNext}
+                            onMouseDown={(e) => e.preventDefault()}
                             aria-label="Next photo"
+                            type="button"
                         >
                             &#8250;
                         </button>
@@ -90,7 +146,9 @@ const PhotoCarousel = ({ photos = [], altText = "Place photo", className = "" })
                                 key={index}
                                 className={`indicator ${index === currentIndex ? 'active' : ''}`}
                                 onClick={(e) => goToSlide(index, e)}
+                                onMouseDown={(e) => e.preventDefault()}
                                 aria-label={`Go to photo ${index + 1}`}
+                                type="button"
                             />
                         ))}
                     </div>
