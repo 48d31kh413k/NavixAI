@@ -1,10 +1,10 @@
-# Navix 🗺️
+# NavixAI 🗺️
 
 **Smart Activity Discovery Platform**
 
-Navix is an intelligent activity recommendation system that suggests personalized activities based on your location, weather conditions, and preferences. Discover restaurants, museums, parks, cafes, and more with AI-powered recommendations tailored just for you.
+NavixAI is an intelligent activity recommendation system that suggests personalized activities based on your location, weather conditions, and preferences. Discover restaurants, museums, parks, cafes, and more with AI-powered recommendations tailored just for you.
 
-![Navix Dashboard](Dashboard.jpg)
+![NavixAI Dashboard](Dashboard.jpg)
 
 ## ✨ Features
 
@@ -86,7 +86,7 @@ Navix is an intelligent activity recommendation system that suggests personalize
 
 ### Prerequisites
 
-Before running Navix, ensure you have the following installed:
+Before running NavixAI, ensure you have the following installed:
 
 - **Python 3.8+** (Backend)
 - **Node.js 16+** (Frontend)
@@ -332,6 +332,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Made with ❤️ by the Navix Team**
+**Made with ❤️ by the NavixAI Team**
 
 For support or questions, please open an issue on GitHub.

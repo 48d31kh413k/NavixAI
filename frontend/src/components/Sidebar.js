@@ -39,7 +39,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             <div className="sidebar-header">
                 <div className="logo">
                     <span className="logo-icon">✱</span>
-                    <span className="logo-text">logo</span>
+                    <span className="logo-text">NavixAI</span>
                 </div>
             </div>
 
