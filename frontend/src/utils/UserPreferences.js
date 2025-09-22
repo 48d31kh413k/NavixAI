@@ -77,7 +77,7 @@ class UserPreferences {
         return this.preferences.activities[activityName] || 0;
     }
 
-    // Place preference methods
+    // Place preference methods (Like-only system)
     likePlace(place, activityType) {
         const placeData = {
             score: (this.preferences.places[place.place_id]?.score || 0) + 1,
@@ -94,19 +94,15 @@ class UserPreferences {
         this.savePreferences();
     }
 
+    // Deprecated: Use like-only system
     dislikePlace(place, activityType) {
-        const placeData = {
-            score: (this.preferences.places[place.place_id]?.score || 0) - 1,
-            name: place.name,
-            activityType: activityType,
-            timestamp: Date.now(),
-            vicinity: place.vicinity,
-            rating: place.rating
-        };
-        
-        this.preferences.places[place.place_id] = placeData;
-        this.addToHistory('dislike', place, activityType);
-        this.savePreferences();
+        console.warn('dislikePlace is deprecated - using like-only system');
+        // For backward compatibility, don't actually dislike but just ignore
+        return;
+    }
+
+    isPlaceLiked(placeId) {
+        return this.getPlaceScore(placeId) > 0;
     }
 
     getPlaceScore(placeId) {

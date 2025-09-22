@@ -205,19 +205,6 @@
     padding-bottom: 8px;
 }
 
-.about-section h3 {
-    font-size: 1.3em;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 15px;
-}
-
-.about-section p {
-    line-height: 1.7;
-    color: #555;
-    font-size: 1.05em;
-}
-
 /* Opening Hours */
 .hours-grid {
     display: grid;
@@ -299,21 +286,6 @@
     font-size: 1.1em;
     font-weight: 600;
     color: #333;
-}
-
-.write-review-btn {
-    background: #ff6b35;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background 0.3s ease;
-}
-
-.write-review-btn:hover {
-    background: #e55a2b;
 }
 
 .reviews-list {

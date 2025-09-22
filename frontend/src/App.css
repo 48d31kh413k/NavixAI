@@ -34,6 +34,12 @@
     align-items: center;
 }
 
+/* Slide hamburger to the right when sidebar is open */
+.sidebar-open .hamburger-menu {
+    left: 200px; /* Position after sidebar width (250px) + margin */
+    
+}
+
 .hamburger-menu:hover {
     background: #f8f9fa;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -48,29 +54,33 @@
     border-radius: 1px;
 }
 
+/* Hamburger icon when sidebar is closed (default state) */
 .hamburger-menu span:nth-child(1) {
-    transform-origin: left center;
+    transform-origin: center center;
+    transform: rotate(0deg);
 }
 
 .hamburger-menu span:nth-child(2) {
     opacity: 1;
+    transform: rotate(0deg);
 }
 
 .hamburger-menu span:nth-child(3) {
-    transform-origin: left center;
+    transform-origin: center center;
+    transform: rotate(0deg);
 }
 
-/* Animated hamburger when sidebar is closed */
-.sidebar-closed .hamburger-menu span:nth-child(1) {
-    transform: rotate(45deg);
+/* Transform to X when sidebar is open */
+.sidebar-open .hamburger-menu span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
 }
 
-.sidebar-closed .hamburger-menu span:nth-child(2) {
+.sidebar-open .hamburger-menu span:nth-child(2) {
     opacity: 0;
 }
 
-.sidebar-closed .hamburger-menu span:nth-child(3) {
-    transform: rotate(-45deg);
+.sidebar-open .hamburger-menu span:nth-child(3) {
+    transform: rotate(-45deg) translate(5px, -5px);
 }
 
 .main-content {

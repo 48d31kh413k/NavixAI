@@ -166,15 +166,12 @@ const PlaceDetail = () => {
         if (!place) return;
         
         try {
-            if (isLiked) {
-                // Unlike the place
-                userPreferences.dislikePlace(place, place.activityName || 'general');
-                setIsLiked(false);
-            } else {
-                // Like the place
+            if (!isLiked) {
+                // Like the place (only allow liking, not unliking)
                 userPreferences.likePlace(place, place.activityName || 'general');
                 setIsLiked(true);
             }
+            // Remove the unlike functionality - once liked, stays liked
         } catch (error) {
             console.error('Error updating place preference:', error);
         }
@@ -230,9 +227,10 @@ const PlaceDetail = () => {
                 </button>
                 <div className="place-actions">
                     <button 
-                        className={`favorite-btn ${isLiked ? 'liked' : ''}`}
+                        className={`favorite-btn ${isLiked ? 'liked disabled' : ''}`}
                         onClick={handleLikeToggle}
-                        title={isLiked ? 'Remove from favorites' : 'Add to favorites'}
+                        disabled={isLiked}
+                        title={isLiked ? 'Added to favorites' : 'Add to favorites'}
                     >
                         {isLiked ? '❤️' : '🤍'}
                     </button>
@@ -258,10 +256,6 @@ const PlaceDetail = () => {
                 {/* Overview */}
                 <section className="overview-section">
                     <h2>Overview</h2>
-                    <div className="about-section">
-                        <h3>About This Place</h3>
-                        <p>{place.description || 'A wonderful place to visit and explore.'}</p>
-                    </div>
                 </section>
 
                 {/* Opening Hours */}
@@ -322,7 +316,6 @@ const PlaceDetail = () => {
                             <span className="rating-display">
                                 ⭐ {place.rating || 4.0} ({place.user_ratings_total || place.reviews || 0} Reviews)
                             </span>
-                            <button className="write-review-btn">✍️ Write a Review</button>
                         </div>
                     </div>
                     

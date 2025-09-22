@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import userPreferences from '../utils/UserPreferences';
-import { convertTemperature, convertSpeed } from '../utils/UnitConverter';
+import { convertTemperature, convertSpeed, convertDistance, formatDistance } from '../utils/UnitConverter';
 import PhotoCarousel from './PhotoCarousel';
 import './Dashboard.css';
 
@@ -13,6 +13,7 @@ const Dashboard = ({ appSettings }) => {
     const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState('All Activities');
     const [userPreferenceState, setUserPreferenceState] = useState({}); // Track preference state
+    const [likedPlaces, setLikedPlaces] = useState(new Set()); // Track liked places
 
     const activityCategories = [
         'All Activities',
@@ -116,6 +117,29 @@ const Dashboard = ({ appSettings }) => {
     useEffect(() => {
         fetchWeatherAndActivities();
     }, []);
+
+    // Load liked places whenever activities change
+    useEffect(() => {
+        if (activities.length > 0) {
+            loadLikedPlaces();
+        }
+    }, [activities]);
+
+    const loadLikedPlaces = () => {
+        const liked = userPreferences.getLikedPlaces();
+        const likedPlaceIds = new Set();
+        liked.forEach(place => {
+            if (place.placeId) likedPlaceIds.add(place.placeId);
+            // Also check for activities with same name/vicinity as fallback
+            activities.forEach(activity => {
+                if (activity.name === place.name && activity.vicinity === place.vicinity) {
+                    if (activity.place_id) likedPlaceIds.add(activity.place_id);
+                    if (activity.id) likedPlaceIds.add(activity.id);
+                }
+            });
+        });
+        setLikedPlaces(likedPlaceIds);
+    };
 
     const fetchWeatherAndActivities = async () => {
         if (navigator.geolocation) {
@@ -313,6 +337,58 @@ const Dashboard = ({ appSettings }) => {
         return appSettings?.units?.distance === 'Miles (mi)' ? 'mph' : 'km/h';
     };
 
+    const getDistance = (distanceString) => {
+        if (!distanceString || !appSettings?.units?.distance) return distanceString;
+        
+        // Extract the numeric value and unit from the distance string (e.g., "1.2 km")
+        const match = distanceString.match(/^([\d.]+)\s*(km|mi)$/);
+        if (!match) return distanceString;
+        
+        const [, value, currentUnit] = match;
+        const numericValue = parseFloat(value);
+        const currentUnitFull = currentUnit === 'km' ? 'Kilometers (km)' : 'Miles (mi)';
+        
+        // Convert if the current unit doesn't match the user's preference
+        if (currentUnitFull !== appSettings.units.distance) {
+            const convertedValue = convertDistance(numericValue, currentUnitFull, appSettings.units.distance);
+            const newUnit = appSettings.units.distance === 'Miles (mi)' ? 'mi' : 'km';
+            return `${convertedValue} ${newUnit}`;
+        }
+        
+        return distanceString;
+    };
+
+    const getDistanceUnit = () => {
+        return appSettings?.units?.distance === 'Miles (mi)' ? 'mi' : 'km';
+    };
+
+    const handleLikeActivity = (activity) => {
+        try {
+            const activityKey = activity.place_id || activity.id;
+            if (!likedPlaces.has(activityKey)) {
+                // Like the place
+                const placeData = {
+                    place_id: activity.place_id || activity.id,
+                    name: activity.name,
+                    vicinity: activity.vicinity,
+                    rating: activity.rating,
+                    types: activity.types || []
+                };
+                userPreferences.likePlace(placeData, activity.activity_name || 'general');
+                
+                // Update local state with both potential IDs
+                setLikedPlaces(prev => {
+                    const newSet = new Set(prev);
+                    if (activity.place_id) newSet.add(activity.place_id);
+                    if (activity.id) newSet.add(activity.id);
+                    return newSet;
+                });
+            }
+        } catch (error) {
+            console.error('Error liking activity:', error);
+        }
+    };
+
     if (loading) {
         return (
             <div className="dashboard-loading">
@@ -324,12 +400,18 @@ const Dashboard = ({ appSettings }) => {
 
     return (
         <div className="dashboard">
-            {/* Top Header */}
+            {/* Top Header with NavixAI Logo */}
             <div className="dashboard-header">
                 <div className="header-content">
-                    <h1>Dashboard</h1>
+                    <div className="header-left">
+                        <div className="navix-logo">
+                            <span className="logo-text">NavixAI</span>
+                        </div>
+                        <div className="header-separator">|</div>
+                        <h1>Dashboard</h1>
+                    </div>
                     <div className="header-actions">
-                        <div className="user-profile" onClick={() => navigate('/preferences')}>
+                        <div className="user-profile" onClick={() => navigate('/settings')}>
                             <div className="user-avatar">👤</div>
                         </div>
                     </div>
@@ -432,13 +514,13 @@ const Dashboard = ({ appSettings }) => {
                                         {activity.walkingTime && (
                                             <span className="travel-time walking">
                                                 🚶 {activity.walkingTime}
-                                                {activity.walkingDistance && ` (${activity.walkingDistance})`}
+                                                {activity.walkingDistance && ` (${getDistance(activity.walkingDistance)})`}
                                             </span>
                                         )}
                                         {activity.drivingTime && (
                                             <span className="travel-time driving">
                                                 🚗 {activity.drivingTime}
-                                                {activity.drivingDistance && ` (${activity.drivingDistance})`}
+                                                {activity.drivingDistance && ` (${getDistance(activity.drivingDistance)})`}
                                             </span>
                                         )}
                                         {!activity.walkingTime && !activity.drivingTime && (
@@ -449,6 +531,17 @@ const Dashboard = ({ appSettings }) => {
                                     </div>
                                 </div>
                                 <div className="activity-actions">
+                                    <button 
+                                        className={`like-btn ${(likedPlaces.has(activity.place_id) || likedPlaces.has(activity.id)) ? 'liked' : ''}`}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleLikeActivity(activity);
+                                        }}
+                                        disabled={likedPlaces.has(activity.place_id) || likedPlaces.has(activity.id)}
+                                        title={(likedPlaces.has(activity.place_id) || likedPlaces.has(activity.id)) ? 'Added to favorites' : 'Add to favorites'}
+                                    >
+                                        {(likedPlaces.has(activity.place_id) || likedPlaces.has(activity.id)) ? '❤️' : '🤍'}
+                                    </button>
                                     <button 
                                         className="view-details-btn"
                                         onClick={() => {

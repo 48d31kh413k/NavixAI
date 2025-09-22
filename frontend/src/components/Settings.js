@@ -158,13 +158,9 @@ const Settings = ({ appSettings, updateAppSettings }) => {
                 <div className="nav-breadcrumb">
                     <span className="breadcrumb-item">Dashboard</span>
                     <span className="breadcrumb-separator">&gt;</span>
-                    <span className="breadcrumb-current">Preferences</span>
+                    <span className="breadcrumb-current">Settings</span>
                 </div>
                 <div className="header-actions">
-                    <div className="search-bar">
-                        <input type="text" placeholder="Search activities or places..." />
-                        <button className="search-btn">🔍</button>
-                    </div>
                     <div className="user-profile">
                         <div className="user-avatar">👤</div>
                     </div>
@@ -172,8 +168,8 @@ const Settings = ({ appSettings, updateAppSettings }) => {
             </div>
 
             <div className="settings-header">
-                <h1>User Preferences & Settings</h1>
-                <p>Customize your experience and manage your account preferences.</p>
+                <h1>Settings</h1>
+                <p>Customize your experience and manage your account settings.</p>
             </div>
 
             <div className="settings-content">
@@ -210,22 +206,6 @@ const Settings = ({ appSettings, updateAppSettings }) => {
                         onChange={() => handleToggleChange('activities', 'culinaryDelights')}
                         label="Culinary Delights"
                         description="Recommendations for restaurants, cafes, and cooking courses."
-                    />
-                </div>
-
-                {/* Location Preferences */}
-                <div className="settings-section">
-                    <h3>Location Preferences</h3>
-                    <p className="section-description">
-                        Define the geographical scope for your activity recommendations.
-                    </p>
-                    
-                    <SelectDropdown
-                        value={preferences?.location?.recommendationRadius || 'Local Area (5km)'}
-                        onChange={(value) => handleSelectChange('location', 'recommendationRadius', value)}
-                        options={['Local Area (5km)', 'City Wide (25km)', 'Regional (50km)', 'Extended (100km)']}
-                        label="Recommendation Radius"
-                        description="Select how far you're willing to travel for activities."
                     />
                 </div>
 

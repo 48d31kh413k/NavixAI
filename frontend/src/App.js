@@ -58,7 +58,7 @@ function App() {
 
     return (
         <BrowserRouter>
-            <div className="app-layout">
+            <div className={`app-layout ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
                 {/* Hamburger Menu Button */}
                 <button 
                     className="hamburger-menu" 
@@ -74,7 +74,7 @@ function App() {
                 <main className={`main-content ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
                     <Routes>
                         <Route path="/" element={<Dashboard appSettings={appSettings} />} />
-                        <Route path="/preferences" element={<Settings appSettings={appSettings} updateAppSettings={updateAppSettings} />} />
+                        <Route path="/settings" element={<Settings appSettings={appSettings} updateAppSettings={updateAppSettings} />} />
                         <Route path="/user-preferences" element={<UserPreferences />} />
                         <Route path="/history" element={<UserHistory />} />
                         <Route path="/place/:placeId" element={<PlaceDetail />} />
