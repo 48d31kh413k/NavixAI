@@ -33,24 +33,25 @@
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.7);
     color: white;
     border: none;
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
-    font-size: 20px;
+    font-size: 22px;
     font-weight: bold;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 10;
+    z-index: 15;
     transition: all 0.3s ease;
-    opacity: 0.8; /* Changed from 0 to 0.8 to make always visible */
+    opacity: 1; /* Always visible for better UX */
     user-select: none;
     outline: none;
-    pointer-events: auto; /* Ensure pointer events work */
+    pointer-events: auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .carousel-arrow:focus {
@@ -59,21 +60,22 @@
 }
 
 .carousel-arrow:hover {
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.9);
     transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .carousel-arrow:active {
     transform: translateY(-50%) scale(0.95);
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.95);
 }
 
 .carousel-arrow-left {
-    left: 12px;
+    left: 15px;
 }
 
 .carousel-arrow-right {
-    right: 12px;
+    right: 15px;
 }
 
 /* Show arrows on hover or focus */
@@ -120,43 +122,21 @@
     transform: scale(1.1);
 }
 
-/* Photo counter */
-.photo-counter {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 6px 10px;
-    border-radius: 15px;
-    font-size: 13px;
-    font-weight: 600;
-    z-index: 10;
-    user-select: none;
-}
-
 /* Responsive design */
 @media (max-width: 768px) {
     .carousel-arrow {
-        width: 36px;
-        height: 36px;
-        font-size: 18px;
-        opacity: 0.8;
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+        opacity: 1;
     }
     
     .carousel-arrow-left {
-        left: 10px;
+        left: 12px;
     }
     
     .carousel-arrow-right {
-        right: 10px;
-    }
-    
-    .photo-counter {
-        top: 10px;
-        right: 10px;
-        font-size: 12px;
-        padding: 4px 8px;
+        right: 12px;
     }
     
     .carousel-indicators {
@@ -169,21 +149,18 @@
     }
 }
 
-/* For mobile - show arrows always */
+/* For mobile - ensure arrows are always visible and easy to tap */
 @media (max-width: 480px) {
     .carousel-arrow {
-        opacity: 0.9;
+        opacity: 1;
+        width: 42px;
+        height: 42px;
+        font-size: 20px;
     }
     
     .carousel-arrow:active {
         opacity: 1;
         background: rgba(0, 0, 0, 0.9);
         transform: translateY(-50%) scale(0.9);
-    }
-
-    .photo-carousel:hover .carousel-arrow,
-    .photo-carousel:focus .carousel-arrow,
-    .photo-carousel:focus-within .carousel-arrow {
-        opacity: 0.9;
     }
 }

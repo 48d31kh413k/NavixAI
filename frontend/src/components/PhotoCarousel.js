@@ -169,13 +169,6 @@ const PhotoCarousel = ({ photos = [], altText = "Place photo", className = "" })
                         ))}
                     </div>
                 )}
-                
-                {/* Photo counter */}
-                {displayPhotos.length > 1 && (
-                    <div className="photo-counter">
-                        {currentIndex + 1} / {displayPhotos.length}
-                    </div>
-                )}
             </div>
         </div>
     );
