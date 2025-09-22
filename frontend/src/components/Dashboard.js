@@ -13,46 +13,6 @@ const Dashboard = ({ appSettings }) => {
     const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState('All Activities');
     const [userPreferenceState, setUserPreferenceState] = useState({}); // Track preference state
-    const [searchTerm, setSearchTerm] = useState('');
-
-    // Handle preference updates to backend
-    const updateUserPreference = async (place, preference) => {
-        try {
-            // Update local state immediately for UI feedback
-            setUserPreferenceState(prev => ({
-                ...prev,
-                [place.place_id]: preference
-            }));
-
-            const response = await axios.post('http://localhost:8000/api/user-preference/', {
-                place_id: place.place_id,
-                place_name: place.name,
-                activity_type: place.activity_name || place.type,
-                preference: preference,
-                user_id: 'anonymous' // You can implement proper user authentication later
-            });
-            
-            if (response.data.success) {
-                console.log(`Successfully ${preference}d place:`, place.name);
-                // Also update local preferences for consistency
-                if (preference === 'like') {
-                    userPreferences.likeActivity(place.activity_name || place.name);
-                } else {
-                    userPreferences.dislikeActivity(place.activity_name || place.name);
-                }
-                // Force re-render to show updated preferences
-                setActivities([...activities]);
-            }
-        } catch (error) {
-            console.error(`Error updating ${preference} preference:`, error);
-            // Still update local preferences as fallback
-            if (preference === 'like') {
-                userPreferences.likeActivity(place.activity_name || place.name);
-            } else {
-                userPreferences.dislikeActivity(place.activity_name || place.name);
-            }
-        }
-    };
 
     const activityCategories = [
         'All Activities',
@@ -78,8 +38,10 @@ const Dashboard = ({ appSettings }) => {
                         photos: place.photos || [], // All photos array
                         rating: place.rating || 4.0,
                         reviews: place.user_ratings_total || 0,
-                        duration: '1-3 hours',
-                        difficulty: 'Easy',
+                        walkingTime: place.walking_time || null,
+                        drivingTime: place.driving_time || null,
+                        walkingDistance: place.walking_distance || null,
+                        drivingDistance: place.driving_distance || null,
                         activity_name: activity.activity_name,
                         place_count: 1,
                         places: [place], // The actual place data
@@ -261,17 +223,6 @@ const Dashboard = ({ appSettings }) => {
     const getFilteredAndSortedActivities = () => {
         let filtered = activities;
         
-        // Filter by search term
-        if (searchTerm.trim()) {
-            filtered = filtered.filter(activity => 
-                activity.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                activity.vicinity?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                activity.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                activity.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                activity.activity_name?.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-        }
-        
         // Filter by category (if specific category selected)
         if (selectedCategory !== 'All Activities') {
             filtered = filtered.filter(activity => activity.category === selectedCategory);
@@ -378,15 +329,6 @@ const Dashboard = ({ appSettings }) => {
                 <div className="header-content">
                     <h1>Dashboard</h1>
                     <div className="header-actions">
-                        <div className="search-bar">
-                            <input 
-                                type="text" 
-                                placeholder="Search activities or places..." 
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                            <button className="search-btn">🔍</button>
-                        </div>
                         <div className="user-profile" onClick={() => navigate('/preferences')}>
                             <div className="user-avatar">👤</div>
                         </div>
@@ -472,18 +414,6 @@ const Dashboard = ({ appSettings }) => {
                                     className="activity-carousel"
                                 />
                                 <div className="activity-category">{activity.category}</div>
-                                {(() => {
-                                    const score = userPreferences.getActivityScore(activity.activity_name || activity.name);
-                                    const preference = userPreferenceState[activity.place_id] || 
-                                                     (score > 0 ? 'liked' : score < 0 ? 'disliked' : null);
-                                    
-                                    if (preference === 'liked') {
-                                        return <div className="preference-indicator liked">❤️ Liked</div>;
-                                    } else if (preference === 'disliked') {
-                                        return <div className="preference-indicator disliked">👎 Disliked</div>;
-                                    }
-                                    return null;
-                                })()}
                             </div>
                             <div className="activity-content">
                                 <h3>{activity.name}</h3>
@@ -499,27 +429,26 @@ const Dashboard = ({ appSettings }) => {
                                         </span>
                                     </div>
                                     <div className="activity-info">
-                                        <span className="duration">{activity.duration}</span>
-                                        <span className="difficulty">{activity.difficulty}</span>
+                                        {activity.walkingTime && (
+                                            <span className="travel-time walking">
+                                                🚶 {activity.walkingTime}
+                                                {activity.walkingDistance && ` (${activity.walkingDistance})`}
+                                            </span>
+                                        )}
+                                        {activity.drivingTime && (
+                                            <span className="travel-time driving">
+                                                🚗 {activity.drivingTime}
+                                                {activity.drivingDistance && ` (${activity.drivingDistance})`}
+                                            </span>
+                                        )}
+                                        {!activity.walkingTime && !activity.drivingTime && (
+                                            <span className="travel-time loading">
+                                                ⏱️ Calculating...
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="activity-actions">
-                                    <div className="activity-preferences">
-                                        <button 
-                                            className="like-btn"
-                                            onClick={() => updateUserPreference(activity, 'like')}
-                                            title={`Like ${activity.name || activity.activity_name}`}
-                                        >
-                                            👍
-                                        </button>
-                                        <button 
-                                            className="dislike-btn"
-                                            onClick={() => updateUserPreference(activity, 'dislike')}
-                                            title={`Dislike ${activity.name || activity.activity_name}`}
-                                        >
-                                            👎
-                                        </button>
-                                    </div>
                                     <button 
                                         className="view-details-btn"
                                         onClick={() => {

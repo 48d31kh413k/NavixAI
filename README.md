@@ -23,15 +23,37 @@ Navix is an intelligent activity recommendation system that suggests personalize
 ### 📱 **User Experience**
 - **Interactive Dashboard**: Clean, modern interface with activity cards
 - **Photo Carousels**: Rich visual content with multiple photos per location
-- **Real-time Search**: Instant filtering and search functionality
-- **Preference Management**: Customizable activity preferences and settings
-- **User History**: Track liked/disliked places for better recommendations
+- **Real-time Travel Information**: Live travel times and distances for walking and driving
+- **Smart Navigation**: Quick access to detailed place information
+- **Responsive Design**: Optimized for desktop, tablet, and mobile devices
+
+### 🚗 **Travel Intelligence**
+- **Multi-Modal Travel Times**: Real-time walking and driving duration estimates
+- **Distance Calculation**: Accurate distance measurements using Google Distance Matrix API
+- **Smart Display**: Travel information shown with intuitive icons (🚶 🚗)
+- **Route Optimization**: Choose the best transportation method for each activity
+- **Location-Aware**: Automatically calculates from your current position
 
 ### ⚙️ **Customization**
 - **Flexible Preferences**: Enable/disable activity categories
 - **Location Settings**: Configurable recommendation radius
 - **Unit Preferences**: Celsius/Fahrenheit, Kilometers/Miles
 - **Personalization**: Smart filtering based on user behavior
+
+## 🆕 **Latest Updates**
+
+### **v2.1.0 - Travel Intelligence Update**
+- ✅ **Real-time Travel Information**: Added travel times and distances for both walking and driving
+- ✅ **Enhanced Activity Cards**: Replaced static duration/difficulty with dynamic travel data
+- ✅ **Google Distance Matrix Integration**: Live calculations based on user location
+- ✅ **Smart Transportation Icons**: Visual indicators for walking 🚶 and driving 🚗 options
+- ✅ **Improved User Experience**: Better decision-making with complete travel information
+
+### **Recent Improvements**
+- 🔧 **Removed Search Functionality**: Streamlined interface focusing on category-based discovery
+- 🔧 **Simplified Interaction**: Removed like/dislike buttons for cleaner card design
+- 🎨 **Enhanced Styling**: Better spacing and typography for travel information display
+- ⚡ **Performance Optimization**: Efficient API calls with smart caching strategies
 
 ## 🛠️ Tech Stack
 
@@ -50,7 +72,8 @@ Navix is an intelligent activity recommendation system that suggests personalize
 
 ### **External APIs**
 - **OpenAI GPT-3.5** - AI-powered activity suggestions
-- **Google Maps API** - Places search, photos, and location data
+- **Google Maps API** - Places search, photos, location data, and travel calculations
+- **Google Distance Matrix API** - Real-time travel times and distances
 - **OpenWeatherMap API** - Real-time weather data integration
 
 ### **Development Tools**
@@ -100,9 +123,10 @@ DATABASE_URL=sqlite:///db.sqlite3
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select existing
 3. Enable the following APIs:
-   - Places API
-   - Maps JavaScript API
-   - Geocoding API
+   - Places API (for location search and details)
+   - Maps JavaScript API (for map integration)
+   - Geocoding API (for address conversion)
+   - Distance Matrix API (for travel times and distances)
 4. Create credentials (API Key)
 5. Add to `.env` as `GOOGLE_MAPS_API_KEY`
 
@@ -231,11 +255,16 @@ The frontend automatically connects to the backend at `http://localhost:8000`. I
 ## 🏗️ API Endpoints
 
 ### **Activity Suggestions**
-- `POST /api/activity-suggestion/` - Get AI-powered activity recommendations
+- `POST /api/activity-suggestion/` - Get AI-powered activity recommendations with travel times
 - `GET /api/suggestions/` - Get weather-based suggestions (legacy)
 
 ### **Place Details**
 - `GET /api/place-details/{place_id}/` - Get detailed information about a specific place
+
+### **Travel Information**
+- **Integrated in activity suggestions** - Travel times and distances calculated automatically
+- **Walking & Driving Routes** - Multi-modal transportation options
+- **Real-time Calculation** - Live data from Google Distance Matrix API
 
 ### **User Preferences**
 - `POST /api/user-preference/` - Update user preference (like/dislike)
@@ -273,8 +302,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 #### **No activity suggestions**
 - Verify OpenAI API key is valid and has credits
-- Check Google Maps API key has required permissions
+- Check Google Maps API key has required permissions (Places API, Distance Matrix API)
 - Ensure location access is granted in browser
+
+#### **Travel times not displaying**
+- Confirm Google Distance Matrix API is enabled in Google Cloud Console
+- Check API key quotas and billing settings
+- Verify location permissions are granted
+- Ensure activities have valid geographic coordinates
 
 #### **Weather data not loading**
 - Confirm OpenWeatherMap API key is active

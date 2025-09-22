@@ -35,37 +35,6 @@
     gap: 20px;
 }
 
-.search-bar {
-    display: flex;
-    align-items: center;
-    background: #f8f9fa;
-    border: 1px solid #e0e0e0;
-    border-radius: 25px;
-    padding: 8px 15px;
-    width: 350px;
-}
-
-.search-bar input {
-    border: none;
-    background: none;
-    outline: none;
-    flex: 1;
-    font-size: 14px;
-    color: #333;
-}
-
-.search-bar input::placeholder {
-    color: #999;
-}
-
-.search-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-    margin-left: 10px;
-}
-
 .user-profile {
     display: flex;
     align-items: center;
@@ -424,14 +393,30 @@
     gap: 15px;
     font-size: 0.85em;
     color: #999;
+    flex-wrap: wrap;
 }
 
-.duration::before {
-    content: '🕒 ';
+.travel-time {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    font-size: 0.8em;
+    white-space: nowrap;
 }
 
-.difficulty::before {
-    content: '📊 ';
+.travel-time.walking {
+    color: #28a745;
+}
+
+.travel-time.driving {
+    color: #007bff;
+}
+
+.travel-time.loading {
+    color: #6c757d;
 }
 
 /* Activity Actions */
@@ -439,36 +424,6 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-}
-
-.activity-preferences {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-}
-
-.like-btn, .dislike-btn {
-    background: #f8f9fa;
-    border: 1px solid #e0e0e0;
-    border-radius: 50%;
-    width: 36px;
-    height: 36px;
-    cursor: pointer;
-    font-size: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-}
-
-.like-btn:hover {
-    background: #e8f5e8;
-    border-color: #4caf50;
-}
-
-.dislike-btn:hover {
-    background: #ffeaea;
-    border-color: #f44336;
 }
 
 .view-details-btn {
@@ -535,10 +490,6 @@
         flex-direction: column;
         gap: 15px;
         align-items: flex-start;
-    }
-    
-    .search-bar {
-        width: 100%;
     }
     
     .header-actions {

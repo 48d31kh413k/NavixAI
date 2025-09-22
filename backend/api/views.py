@@ -468,6 +468,20 @@ def get_nearby_places(latitude, longitude, activity_type, radius=15000):
         # Format places data
         places = []
         for place in list(unique_places.values())[:8]:  # Limit to 8 places per activity
+            # Get place coordinates for travel time calculation
+            place_lat = place.get('geometry', {}).get('location', {}).get('lat')
+            place_lng = place.get('geometry', {}).get('location', {}).get('lng')
+            
+            # Get travel times if coordinates are available
+            travel_times = {
+                'walking_time': None, 
+                'driving_time': None,
+                'walking_distance': None,
+                'driving_distance': None
+            }
+            if place_lat and place_lng:
+                travel_times = get_travel_times(latitude, longitude, place_lat, place_lng)
+            
             place_data = {
                 'place_id': place.get('place_id'),
                 'name': place.get('name'),
@@ -477,7 +491,11 @@ def get_nearby_places(latitude, longitude, activity_type, radius=15000):
                 'types': place.get('types', []),
                 'photos': get_place_photos(place.get('photos', [])),
                 'price_level': place.get('price_level'),
-                'geometry': place.get('geometry', {})
+                'geometry': place.get('geometry', {}),
+                'walking_time': travel_times['walking_time'],
+                'driving_time': travel_times['driving_time'],
+                'walking_distance': travel_times['walking_distance'],
+                'driving_distance': travel_times['driving_distance']
             }
             places.append(place_data)
         
@@ -486,6 +504,76 @@ def get_nearby_places(latitude, longitude, activity_type, radius=15000):
     except Exception as e:
         print(f"Google Places API error for {activity_type}: {str(e)}")
         return get_mock_places(activity_type)
+
+def get_travel_times(user_lat, user_lng, place_lat, place_lng):
+    """Get travel times and distances for walking and driving using Google Distance Matrix API"""
+    if not GOOGLE_MAPS_API_KEY:
+        return {
+            'walking_time': None, 
+            'driving_time': None,
+            'walking_distance': None,
+            'driving_distance': None
+        }
+    
+    try:
+        gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
+        
+        origin = f"{user_lat},{user_lng}"
+        destination = f"{place_lat},{place_lng}"
+        
+        # Get walking and driving times
+        walking_result = gmaps.distance_matrix(
+            origins=[origin],
+            destinations=[destination],
+            mode="walking",
+            units="metric"
+        )
+        
+        driving_result = gmaps.distance_matrix(
+            origins=[origin],
+            destinations=[destination],
+            mode="driving",
+            units="metric"
+        )
+        
+        walking_time = None
+        driving_time = None
+        walking_distance = None
+        driving_distance = None
+        
+        # Parse walking time and distance
+        if (walking_result['rows'] and 
+            walking_result['rows'][0]['elements'] and 
+            walking_result['rows'][0]['elements'][0]['status'] == 'OK'):
+            walking_duration = walking_result['rows'][0]['elements'][0]['duration']['text']
+            walking_dist = walking_result['rows'][0]['elements'][0]['distance']['text']
+            walking_time = walking_duration
+            walking_distance = walking_dist
+        
+        # Parse driving time and distance
+        if (driving_result['rows'] and 
+            driving_result['rows'][0]['elements'] and 
+            driving_result['rows'][0]['elements'][0]['status'] == 'OK'):
+            driving_duration = driving_result['rows'][0]['elements'][0]['duration']['text']
+            driving_dist = driving_result['rows'][0]['elements'][0]['distance']['text']
+            driving_time = driving_duration
+            driving_distance = driving_dist
+        
+        return {
+            'walking_time': walking_time,
+            'driving_time': driving_time,
+            'walking_distance': walking_distance,
+            'driving_distance': driving_distance
+        }
+        
+    except Exception as e:
+        print(f"Error getting travel times: {e}")
+        return {
+            'walking_time': None, 
+            'driving_time': None,
+            'walking_distance': None,
+            'driving_distance': None
+        }
 
 def get_place_photos(photos):
     """Get photo URLs from place photos"""
@@ -511,24 +599,24 @@ def get_mock_places(activity_type):
     """Enhanced mock places data for testing"""
     mock_places = {
         'restaurant': [
-            {'place_id': 'r1', 'name': 'Gourmet Bistro', 'vicinity': 'Downtown', 'rating': 4.5, 'user_ratings_total': 120, 'types': ['restaurant'], 'photos': ['https://via.placeholder.com/400x300'], 'price_level': 3},
-            {'place_id': 'r2', 'name': 'Cozy Corner Diner', 'vicinity': 'Main St', 'rating': 4.2, 'user_ratings_total': 89, 'types': ['restaurant'], 'photos': ['https://via.placeholder.com/400x300'], 'price_level': 2},
+            {'place_id': 'r1', 'name': 'Gourmet Bistro', 'vicinity': 'Downtown', 'rating': 4.5, 'user_ratings_total': 120, 'types': ['restaurant'], 'photos': [], 'price_level': 3, 'walking_time': '15 mins', 'driving_time': '5 mins'},
+            {'place_id': 'r2', 'name': 'Cozy Corner Diner', 'vicinity': 'Main St', 'rating': 4.2, 'user_ratings_total': 89, 'types': ['restaurant'], 'photos': [], 'price_level': 2, 'walking_time': '8 mins', 'driving_time': '3 mins'},
         ],
         'cafe': [
-            {'place_id': 'c1', 'name': 'Artisan Coffee House', 'vicinity': 'Arts District', 'rating': 4.7, 'user_ratings_total': 203, 'types': ['cafe'], 'photos': ['https://via.placeholder.com/400x300'], 'price_level': 2},
-            {'place_id': 'c2', 'name': 'Morning Brew', 'vicinity': 'Central Ave', 'rating': 4.3, 'user_ratings_total': 156, 'types': ['cafe'], 'photos': ['https://via.placeholder.com/400x300'], 'price_level': 2},
+            {'place_id': 'c1', 'name': 'Artisan Coffee House', 'vicinity': 'Arts District', 'rating': 4.7, 'user_ratings_total': 203, 'types': ['cafe'], 'photos': [], 'price_level': 2, 'walking_time': '12 mins', 'driving_time': '4 mins'},
+            {'place_id': 'c2', 'name': 'Morning Brew', 'vicinity': 'Central Ave', 'rating': 4.3, 'user_ratings_total': 156, 'types': ['cafe'], 'photos': [], 'price_level': 2, 'walking_time': '6 mins', 'driving_time': '2 mins'},
         ],
         'museum': [
-            {'place_id': 'm1', 'name': 'City Art Museum', 'vicinity': 'Cultural District', 'rating': 4.6, 'user_ratings_total': 340, 'types': ['museum'], 'photos': ['https://via.placeholder.com/400x300'], 'price_level': 2},
-            {'place_id': 'm2', 'name': 'Natural History Museum', 'vicinity': 'University Area', 'rating': 4.4, 'user_ratings_total': 267, 'types': ['museum'], 'photos': ['https://via.placeholder.com/400x300'], 'price_level': 2},
+            {'place_id': 'm1', 'name': 'City Art Museum', 'vicinity': 'Cultural District', 'rating': 4.6, 'user_ratings_total': 340, 'types': ['museum'], 'photos': [], 'price_level': 2, 'walking_time': '20 mins', 'driving_time': '7 mins'},
+            {'place_id': 'm2', 'name': 'Natural History Museum', 'vicinity': 'University Area', 'rating': 4.4, 'user_ratings_total': 267, 'types': ['museum'], 'photos': [], 'price_level': 2, 'walking_time': '25 mins', 'driving_time': '10 mins'},
         ],
         'park': [
-            {'place_id': 'p1', 'name': 'Riverside Park', 'vicinity': 'River District', 'rating': 4.5, 'user_ratings_total': 178, 'types': ['park'], 'photos': ['https://via.placeholder.com/400x300'], 'price_level': 0},
-            {'place_id': 'p2', 'name': 'Central Gardens', 'vicinity': 'City Center', 'rating': 4.3, 'user_ratings_total': 234, 'types': ['park'], 'photos': ['https://via.placeholder.com/400x300'], 'price_level': 0},
+            {'place_id': 'p1', 'name': 'Riverside Park', 'vicinity': 'River District', 'rating': 4.5, 'user_ratings_total': 178, 'types': ['park'], 'photos': [], 'price_level': 0, 'walking_time': '18 mins', 'driving_time': '6 mins'},
+            {'place_id': 'p2', 'name': 'Central Gardens', 'vicinity': 'City Center', 'rating': 4.3, 'user_ratings_total': 234, 'types': ['park'], 'photos': [], 'price_level': 0, 'walking_time': '10 mins', 'driving_time': '4 mins'},
         ],
         'cinema': [
-            {'place_id': 'ci1', 'name': 'Grand Theater', 'vicinity': 'Entertainment District', 'rating': 4.2, 'user_ratings_total': 145, 'types': ['movie_theater'], 'photos': ['https://via.placeholder.com/400x300'], 'price_level': 2},
-            {'place_id': 'ci2', 'name': 'Multiplex Cinema', 'vicinity': 'Shopping Center', 'rating': 4.0, 'user_ratings_total': 298, 'types': ['movie_theater'], 'photos': ['https://via.placeholder.com/400x300'], 'price_level': 2},
+            {'place_id': 'ci1', 'name': 'Grand Theater', 'vicinity': 'Entertainment District', 'rating': 4.2, 'user_ratings_total': 145, 'types': ['movie_theater'], 'photos': [], 'price_level': 2, 'walking_time': '22 mins', 'driving_time': '8 mins'},
+            {'place_id': 'ci2', 'name': 'Multiplex Cinema', 'vicinity': 'Shopping Center', 'rating': 4.0, 'user_ratings_total': 298, 'types': ['movie_theater'], 'photos': [], 'price_level': 2, 'walking_time': '16 mins', 'driving_time': '5 mins'},
         ]
     }
     
