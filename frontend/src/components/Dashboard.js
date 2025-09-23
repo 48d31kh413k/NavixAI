@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import userPreferences from '../utils/UserPreferences';
-import { convertTemperature, convertSpeed, convertDistance, formatDistance } from '../utils/UnitConverter';
+import { convertTemperature, convertSpeed, convertDistance } from '../utils/UnitConverter';
 import PhotoCarousel from './PhotoCarousel';
 import './Dashboard.css';
 
@@ -10,9 +10,16 @@ const Dashboard = ({ appSettings }) => {
     const navigate = useNavigate();
     const [weatherData, setWeatherData] = useState(null);
     const [activities, setActivities] = useState([]);
+    
+    // Debug activities changes
+    useEffect(() => {
+        console.log('=== ACTIVITIES CHANGED ===');
+        console.log('New activities count:', activities.length);
+        console.log('Activities:', activities.map(a => a.name));
+        console.log('========================');
+    }, [activities]);
     const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState('All Activities');
-    const [userPreferenceState, setUserPreferenceState] = useState({}); // Track preference state
     const [likedPlaces, setLikedPlaces] = useState(new Set()); // Track liked places
 
     const activityCategories = [
@@ -24,7 +31,7 @@ const Dashboard = ({ appSettings }) => {
     ];
 
     // Transform backend activity data to show individual places with real names
-    const transformActivitiesFromBackend = (backendActivities) => {
+    const transformActivitiesFromBackend = useCallback((backendActivities) => {
         const allPlaces = [];
         let placeId = 1;
         
@@ -55,7 +62,7 @@ const Dashboard = ({ appSettings }) => {
         });
         
         return allPlaces;
-    };
+    }, []);
 
     // Map activity names to our frontend categories
     const mapActivityToCategory = (activityName) => {
@@ -114,34 +121,26 @@ const Dashboard = ({ appSettings }) => {
         return 'All Activities';
     };
 
-    useEffect(() => {
-        fetchWeatherAndActivities();
-    }, []);
-
-    // Load liked places whenever activities change
-    useEffect(() => {
-        if (activities.length > 0) {
-            loadLikedPlaces();
-        }
-    }, [activities]);
-
-    const loadLikedPlaces = () => {
+    // Define loadLikedPlaces before useEffect
+    const loadLikedPlaces = useCallback((activitiesArray = activities) => {
+        console.log('Loading liked places...');
         const liked = userPreferences.getLikedPlaces();
         const likedPlaceIds = new Set();
         liked.forEach(place => {
             if (place.placeId) likedPlaceIds.add(place.placeId);
             // Also check for activities with same name/vicinity as fallback
-            activities.forEach(activity => {
+            activitiesArray.forEach(activity => {
                 if (activity.name === place.name && activity.vicinity === place.vicinity) {
                     if (activity.place_id) likedPlaceIds.add(activity.place_id);
                     if (activity.id) likedPlaceIds.add(activity.id);
                 }
             });
         });
+        console.log('Found liked place IDs:', likedPlaceIds);
         setLikedPlaces(likedPlaceIds);
-    };
+    }, [activities]);
 
-    const fetchWeatherAndActivities = async () => {
+    const fetchWeatherAndActivities = useCallback(async () => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 async (position) => {
@@ -241,7 +240,19 @@ const Dashboard = ({ appSettings }) => {
                 }
             );
         }
-    };
+    }, [transformActivitiesFromBackend]);
+
+    useEffect(() => {
+        fetchWeatherAndActivities();
+    }, [fetchWeatherAndActivities]);
+
+    // Load liked places whenever activities change
+    useEffect(() => {
+        console.log('Activities useEffect triggered. Activities count:', activities.length);
+        if (activities.length > 0) {
+            loadLikedPlaces(activities);
+        }
+    }, [activities, loadLikedPlaces]);
 
     // Filter and sort activities with priority mixing
     const getFilteredAndSortedActivities = () => {
@@ -358,32 +369,44 @@ const Dashboard = ({ appSettings }) => {
         return distanceString;
     };
 
-    const getDistanceUnit = () => {
-        return appSettings?.units?.distance === 'Miles (mi)' ? 'mi' : 'km';
-    };
-
     const handleLikeActivity = (activity) => {
+        console.log('=== handleLikeActivity called ===');
+        console.log('Activity:', activity.name);
+        console.log('Activities count before:', activities.length);
+        
         try {
             const activityKey = activity.place_id || activity.id;
-            if (!likedPlaces.has(activityKey)) {
-                // Like the place
-                const placeData = {
-                    place_id: activity.place_id || activity.id,
-                    name: activity.name,
-                    vicinity: activity.vicinity,
-                    rating: activity.rating,
-                    types: activity.types || []
-                };
-                userPreferences.likePlace(placeData, activity.activity_name || 'general');
-                
-                // Update local state with both potential IDs
-                setLikedPlaces(prev => {
-                    const newSet = new Set(prev);
-                    if (activity.place_id) newSet.add(activity.place_id);
-                    if (activity.id) newSet.add(activity.id);
-                    return newSet;
-                });
+            
+            // Check if already liked
+            if (likedPlaces.has(activityKey)) {
+                console.log('Activity already liked, skipping');
+                return;
             }
+            
+            // Like the place
+            const placeData = {
+                place_id: activity.place_id || activity.id,
+                name: activity.name,
+                vicinity: activity.vicinity,
+                rating: activity.rating,
+                types: activity.types || []
+            };
+            
+            console.log('Saving place to preferences...');
+            userPreferences.likePlace(placeData, activity.activity_name || 'general');
+            
+            // Update local state with both potential IDs
+            setLikedPlaces(prev => {
+                const newSet = new Set(prev);
+                if (activity.place_id) newSet.add(activity.place_id);
+                if (activity.id) newSet.add(activity.id);
+                console.log('Updated liked places:', newSet);
+                return newSet;
+            });
+            
+            console.log('Activities count after:', activities.length);
+            console.log('=== handleLikeActivity completed ===');
+            
         } catch (error) {
             console.error('Error liking activity:', error);
         }
