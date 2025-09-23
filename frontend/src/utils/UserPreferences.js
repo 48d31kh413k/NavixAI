@@ -94,6 +94,16 @@ class UserPreferences {
         this.savePreferences();
     }
 
+    unlikePlace(place, activityType) {
+        const placeId = place.place_id;
+        if (this.preferences.places[placeId]) {
+            // Remove the place from liked places
+            delete this.preferences.places[placeId];
+            this.addToHistory('unlike', place, activityType);
+            this.savePreferences();
+        }
+    }
+
     // Deprecated: Use like-only system
     dislikePlace(place, activityType) {
         console.warn('dislikePlace is deprecated - using like-only system');

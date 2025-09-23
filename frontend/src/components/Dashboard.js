@@ -240,6 +240,7 @@ const Dashboard = ({ appSettings }) => {
                 }
             );
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [transformActivitiesFromBackend]);
 
     useEffect(() => {
@@ -377,9 +378,31 @@ const Dashboard = ({ appSettings }) => {
         try {
             const activityKey = activity.place_id || activity.id;
             
-            // Check if already liked
+            // Check if already liked - if so, unlike it
             if (likedPlaces.has(activityKey)) {
-                console.log('Activity already liked, skipping');
+                console.log('Activity already liked, unliking...');
+                
+                // Unlike the place
+                const placeData = {
+                    place_id: activity.place_id || activity.id,
+                    name: activity.name,
+                    vicinity: activity.vicinity,
+                    rating: activity.rating,
+                    types: activity.types || []
+                };
+                
+                userPreferences.unlikePlace(placeData, activity.activity_name || 'general');
+                
+                // Update local state to remove from liked places
+                setLikedPlaces(prev => {
+                    const newSet = new Set(prev);
+                    if (activity.place_id) newSet.delete(activity.place_id);
+                    if (activity.id) newSet.delete(activity.id);
+                    console.log('Removed from liked places:', newSet);
+                    return newSet;
+                });
+                
+                console.log('=== Activity unliked ===');
                 return;
             }
             
@@ -400,7 +423,7 @@ const Dashboard = ({ appSettings }) => {
                 const newSet = new Set(prev);
                 if (activity.place_id) newSet.add(activity.place_id);
                 if (activity.id) newSet.add(activity.id);
-                console.log('Updated liked places:', newSet);
+                console.log('Added to liked places:', newSet);
                 return newSet;
             });
             
@@ -560,8 +583,7 @@ const Dashboard = ({ appSettings }) => {
                                             e.stopPropagation();
                                             handleLikeActivity(activity);
                                         }}
-                                        disabled={likedPlaces.has(activity.place_id) || likedPlaces.has(activity.id)}
-                                        title={(likedPlaces.has(activity.place_id) || likedPlaces.has(activity.id)) ? 'Added to favorites' : 'Add to favorites'}
+                                        title={(likedPlaces.has(activity.place_id) || likedPlaces.has(activity.id)) ? 'Remove from favorites' : 'Add to favorites'}
                                     >
                                         {(likedPlaces.has(activity.place_id) || likedPlaces.has(activity.id)) ? '❤️' : '🤍'}
                                     </button>
