@@ -536,6 +536,7 @@ const Dashboard = ({ appSettings }) => {
                                     photos={(() => {
                                         const photos = activity.photos && activity.photos.length > 0 ? activity.photos : [];
                                         console.log(`Activity "${activity.name}" has ${photos.length} photos:`, photos);
+                                        console.log('Raw activity object:', activity);
                                         return photos;
                                     })()}
                                     altText={activity.name}
