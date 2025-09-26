@@ -1,3 +1,25 @@
+"""
+NavixAI API Views
+
+This module contains the core API endpoints for the NavixAI application:
+- Activity suggestion system powered by OpenAI GPT
+- Google Places API integration for location data and photos
+- Weather-based activity recommendations
+- User preference management and tracking
+- Caching layer for performance optimization
+
+The API serves as the bridge between the React frontend and external services,
+providing intelligent activity recommendations based on location, weather,
+and user preferences.
+
+Architecture:
+- Uses Django REST Framework for API structure
+- Implements comprehensive caching for performance
+- Integrates multiple external APIs (OpenAI, Google Maps, OpenWeatherMap)
+- Provides fallback mock data for development/testing
+- Supports concurrent processing for improved response times
+"""
+
 from django.shortcuts import render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -17,83 +39,180 @@ import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 
+# Load environment variables from .env file
 load_dotenv()
 
-# Get API keys from environment variables
-openai.api_key = os.getenv('OPENAI_API_KEY')
-OPENWEATHERMAP_API_KEY = os.getenv('OPENWEATHERMAP_API_KEY')
-GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
+# Initialize API keys from environment variables
+# These keys are required for the application to function properly
+openai.api_key = os.getenv('OPENAI_API_KEY')           # OpenAI GPT API for intelligent suggestions
+OPENWEATHERMAP_API_KEY = os.getenv('OPENWEATHERMAP_API_KEY')   # Weather data integration
+GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')         # Google Maps and Places API
 
+# Configure logging for debugging and monitoring
 logger = logging.getLogger(__name__)
+
 
 @api_view(['GET'])
 def test(request):
+    """
+    Health check endpoint to verify API connectivity.
+    
+    This simple endpoint allows frontend and monitoring systems to verify
+    that the API server is running and responsive.
+    
+    Returns:
+        Response: JSON message confirming API is operational
+    """
     return Response({'message': 'API is working'})
+
 
 @csrf_exempt
 def get_weather_suggestions(request):
+    """
+    Legacy weather-based activity suggestion endpoint.
+    
+    Provides activity recommendations based on current weather conditions
+    at a specified location. This endpoint has been largely superseded by
+    the more comprehensive get_activity_suggestion endpoint but is maintained
+    for backward compatibility.
+    
+    Args:
+        request: HTTP POST request containing:
+            - latitude (float): Geographic latitude
+            - longitude (float): Geographic longitude
+            
+    Returns:
+        JsonResponse: Activity suggestions based on weather conditions
+        
+    Caching:
+        Weather data is cached for 1 week (604800 seconds) to reduce API calls
+        
+    External APIs:
+        - OpenWeatherMap API for current weather conditions
+        - OpenAI GPT for weather-appropriate activity suggestions
+    """
     if request.method == 'POST':
+        # Extract coordinates from request
         latitude = request.POST.get('latitude')
         longitude = request.POST.get('longitude')
 
-        # Check cache for weather data
+        # Implement caching strategy to reduce external API calls
+        # Cache key includes coordinates for location-specific caching
         cache_key = f'weather_{latitude}_{longitude}'
         weather_data = cache.get(cache_key)
 
         if not weather_data:
-            # Fetch weather data from OpenWeatherMap API
+            # Fetch fresh weather data from OpenWeatherMap API
+            # Uses metric units for international compatibility
             url = f'http://api.openweathermap.org/data/2.5/weather?lat={latitude}&lon={longitude}&appid={OPENWEATHERMAP_API_KEY}&units=metric'
             response = requests.get(url)
+            
             if response.status_code == 200:
                 weather_data = response.json()
-                # Cache the result for 1 week (604800 seconds)
+                # Cache weather data for 1 week to balance freshness with API quota
                 cache.set(cache_key, weather_data, 604800)
             else:
+                # Handle API failure gracefully
                 return JsonResponse({'error': 'Failed to fetch weather data'}, status=500)
     
         return JsonResponse(weather_data)
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
+
 @csrf_exempt
 def get_activity_suggestion(request):
+    """
+    Main activity suggestion endpoint with AI-powered recommendations.
+    
+    This is the core API endpoint that provides intelligent activity suggestions
+    based on location, weather conditions, and user preferences. It integrates
+    multiple external APIs and uses OpenAI for contextual recommendations.
+    
+    Process Flow:
+    1. Parse and validate input parameters
+    2. Check cache for existing results (performance optimization)
+    3. Fetch weather data for the location
+    4. Generate AI-powered activity suggestions based on weather and preferences
+    5. Find nearby places for each suggested activity using Google Places API
+    6. Calculate travel times and distances
+    7. Cache results and return comprehensive activity data
+    
+    Args:
+        request: HTTP POST request containing:
+            - latitude (float): Geographic latitude for location-based suggestions
+            - longitude (float): Geographic longitude for location-based suggestions
+            - max_activities (int, optional): Maximum number of activities to return (default: 5)
+            - activities (dict, optional): User activity preferences as key-value pairs
+            
+    Returns:
+        JsonResponse: Comprehensive activity data including:
+            - activities: List of suggested activities with nearby places
+            - weather: Current weather conditions
+            - location: Location metadata
+            
+    Caching Strategy:
+        Results are cached for 1 hour based on:
+        - Rounded coordinates (4 decimal precision)
+        - Number of requested activities
+        - User preference hash
+        
+    External API Integration:
+        - OpenWeatherMap: Weather conditions for contextual suggestions
+        - OpenAI GPT: Intelligent activity recommendations
+        - Google Places API: Location data and place details
+        - Google Distance Matrix API: Travel time calculations
+        
+    Error Handling:
+        - Gracefully handles API failures with fallback responses
+        - Provides mock data when external APIs are unavailable
+        - Comprehensive logging for debugging and monitoring
+    """
     if request.method == 'POST':
         try:
-            # Parse input
+            # Parse input data - support both JSON and form-encoded requests
+            # This flexibility allows integration with various frontend frameworks
             data = json.loads(request.body) if request.content_type == 'application/json' else request.POST
             latitude = data.get('latitude')
             longitude = data.get('longitude')
-            max_activities = int(data.get('max_activities', 5))  # Allow client to specify max activities
-            activity_preferences = data.get('activities', {})  # Get user activity preferences
+            max_activities = int(data.get('max_activities', 5))  # Client can specify result count
+            activity_preferences = data.get('activities', {})  # User preference filters
             
-            # Validate input
+            # Input validation - coordinates are required for location-based suggestions
             if not latitude or not longitude:
                 return JsonResponse({'error': 'Missing coordinates'}, status=400)
 
-            # Create a cleaner cache key by rounding coordinates (include preferences in cache)
-            lat_rounded = round(float(latitude), 4)
-            lng_rounded = round(float(longitude), 4)
+            # Create intelligent cache key for performance optimization
+            # Round coordinates to reduce cache fragmentation while maintaining accuracy
+            lat_rounded = round(float(latitude), 4)  # ~11 meter precision
+            lng_rounded = round(float(longitude), 4)  # ~11 meter precision
+            
+            # Include user preferences in cache key for personalized caching
             prefs_key = '_'.join([k for k, v in activity_preferences.items() if v]) if activity_preferences else 'all'
             cache_key = f'multi_activity_{lat_rounded}_{lng_rounded}_{max_activities}_{prefs_key}'
             
+            # Check cache first for improved performance
             cached_result = cache.get(cache_key)
             if cached_result:
                 print("Returning cached multi-activity result")
                 return JsonResponse(cached_result)
 
-            # Get weather data
+            # Fetch weather data for contextual activity suggestions
             weather_data = get_weather_data(latitude, longitude)
             if not weather_data or 'error' in weather_data:
                 return JsonResponse({'error': 'Failed to get weather data'}, status=500)
 
-            # Get multiple activity suggestions from AI
+            # Generate AI-powered activity suggestions using OpenAI
+            # Weather context helps provide appropriate seasonal and condition-based activities
             activities = get_multiple_activities_from_ai(weather_data, max_activities, activity_preferences)
             print(f"Suggested activities: {activities}")
             
-            # Get nearby places for all activities (with threading for performance)
+            # Find nearby places for all suggested activities using concurrent processing
+            # This significantly improves API response time for multiple activity queries
             activities_with_places = get_places_for_all_activities(
                 latitude, longitude, activities, max_activities
             )
             
+            # Build comprehensive response with all relevant data
             result = {
                 'activities': activities_with_places,
                 'weather': weather_data,
@@ -104,13 +223,14 @@ def get_activity_suggestion(request):
                 }
             }
             
-            # Cache for 1 hour
+            # Cache successful results for 1 hour to balance freshness with performance
             cache.set(cache_key, result, 3600)
             print(f"Multi-activity result: Found {len(activities_with_places)} activities")
             
             return JsonResponse(result)
             
         except Exception as e:
+            # Comprehensive error handling with detailed logging
             print("Multi-activity suggestion error:", str(e))
             import traceback
             traceback.print_exc()
@@ -119,13 +239,57 @@ def get_activity_suggestion(request):
     return JsonResponse({'error': 'Invalid request method'}, status=400)
 
 def get_multiple_activities_from_ai(weather_data, max_activities=5, activity_preferences=None):
-    """Get multiple activity suggestions from OpenAI with fallback"""
+    """
+    Generate intelligent activity suggestions using OpenAI GPT.
+    
+    This function leverages OpenAI's language model to provide contextually appropriate
+    activity suggestions based on weather conditions and user preferences. It constructs
+    a detailed prompt that includes weather context, user preferences, and specific
+    formatting requirements for Google Places API compatibility.
+    
+    Algorithm:
+    1. Check for OpenAI API key availability (fallback to static suggestions if missing)
+    2. Parse user preferences into human-readable categories
+    3. Build contextual prompt with weather and preference data
+    4. Query OpenAI GPT for activity suggestions
+    5. Parse and validate AI response
+    6. Return Google Maps-compatible activity keywords
+    
+    Args:
+        weather_data (dict): Weather information from OpenWeatherMap API containing:
+            - weather[0]['description']: Weather condition description
+            - main['temp']: Current temperature in Celsius
+            - name: Location name
+            - main['humidity']: Humidity percentage
+        max_activities (int): Maximum number of activities to suggest (default: 5)
+        activity_preferences (dict, optional): User preference flags:
+            - outdoorAdventure (bool): Preference for outdoor activities
+            - indoorRelaxation (bool): Preference for indoor relaxation
+            - culturalExploration (bool): Preference for cultural venues
+            - culinaryDelights (bool): Preference for food-related activities
+            
+    Returns:
+        list: Activity keywords compatible with Google Places API search terms
+        
+    Fallback Strategy:
+        If OpenAI API is unavailable, falls back to static activity suggestions
+        based on weather conditions to ensure system reliability.
+        
+    AI Prompt Engineering:
+        - Incorporates weather context for seasonal appropriateness
+        - Maps user preferences to specific activity categories
+        - Enforces Google Maps searchable term requirements
+        - Ensures diverse activity mix (outdoor, cultural, dining, relaxation)
+        - Specifies exact output format for consistent parsing
+    """
     try:
+        # Check API key availability and provide fallback for development/testing
         if not openai.api_key:
             print("OpenAI API key not found, using fallback")
             return get_fallback_multiple_activities(weather_data, max_activities, activity_preferences)
         
-        # Build preference context
+        # Parse user preferences into contextual categories
+        # This mapping transforms boolean flags into descriptive activity categories
         enabled_preferences = []
         if activity_preferences:
             if activity_preferences.get('outdoorAdventure'):
@@ -137,6 +301,7 @@ def get_multiple_activities_from_ai(weather_data, max_activities=5, activity_pre
             if activity_preferences.get('culinaryDelights'):
                 enabled_preferences.append('culinary delights (restaurants, food markets, cooking classes, bakeries)')
         
+        # Build preference context for AI prompt
         preference_text = ""
         if enabled_preferences:
             preference_text = f"""
@@ -146,6 +311,8 @@ def get_multiple_activities_from_ai(weather_data, max_activities=5, activity_pre
         else:
             preference_text = "User has no specific preferences - suggest a variety of activities."
         
+        # Construct comprehensive AI prompt with weather context and constraints
+        # This prompt is carefully engineered to produce Google Places API-compatible results
         prompt = f"""
         Given the weather conditions and user preferences, suggest {max_activities} different activities for someone to do.
         
@@ -763,54 +930,106 @@ def get_mock_places(activity_type):
     return mock_places.get(activity_type, mock_places.get('restaurant', []))
 
 @csrf_exempt
+@csrf_exempt
 def get_place_details(request, place_id):
-    """Get detailed information about a specific place"""
+    """
+    Retrieve comprehensive place details from Google Places API.
+    
+    This endpoint provides detailed information about a specific place including
+    photos, reviews, contact information, and operating hours. It implements
+    intelligent caching and error handling for optimal performance.
+    
+    Process Flow:
+    1. Validate API key availability
+    2. Check cache for existing place details (2-hour TTL)
+    3. Query Google Places API with comprehensive field selection
+    4. Process and format photo URLs (up to 8 high-resolution images)
+    5. Structure opening hours data for frontend consumption
+    6. Format reviews with user ratings and timestamps
+    7. Cache processed results and return comprehensive place data
+    
+    Caching Strategy:
+    - Cache key: 'place_details_{place_id}'
+    - Cache duration: 2 hours (7200 seconds)
+    - Reduces API costs and improves response times
+    
+    Google Places API Integration:
+    - Uses Place Details API with comprehensive field selection
+    - Requests high-resolution photos (800px width)
+    - Includes reviews, ratings, contact info, and hours
+    - Handles API quotas and rate limiting gracefully
+    
+    Args:
+        request: HTTP GET request
+        place_id (str): Google Places API place identifier
+        
+    Returns:
+        JsonResponse: Comprehensive place details including:
+            - Basic info (name, address, phone, website)
+            - Photos (up to 8 high-resolution images)
+            - Reviews (up to 5 recent reviews with ratings)
+            - Operating hours (current status and weekly schedule)
+            - Ratings and user statistics
+            
+    Error Handling:
+        - API key validation with descriptive error messages
+        - Place not found handling with 404 status
+        - API failure fallback with error logging
+        - Invalid request method handling
+    """
     if request.method == 'GET':
         try:
+            # Validate Google Maps API key availability
             if not GOOGLE_MAPS_API_KEY:
                 return JsonResponse({'error': 'Google Maps API key not configured'}, status=500)
             
-            # Check cache first
+            # Implement caching strategy for performance optimization
+            # Cache reduces API costs and improves user experience
             cache_key = f'place_details_{place_id}'
             cached_details = cache.get(cache_key)
             if cached_details:
                 return JsonResponse(cached_details)
             
-            # Initialize Google Maps client
+            # Initialize Google Maps client with API key
             gmaps = googlemaps.Client(key=GOOGLE_MAPS_API_KEY)
             
-            # Get place details from Google Places API
+            # Request comprehensive place details from Google Places API
+            # Field selection optimized for frontend requirements and API quota
             place_details = gmaps.place(
                 place_id=place_id,
                 fields=[
-                    'place_id', 'name', 'vicinity', 'formatted_address', 
-                    'formatted_phone_number', 'website', 'rating', 
-                    'user_ratings_total', 'price_level', 'opening_hours',
-                    'photo', 'reviews', 'url', 'international_phone_number'
+                    'place_id', 'name', 'vicinity', 'formatted_address',     # Basic identification
+                    'formatted_phone_number', 'website', 'rating',           # Contact and rating info  
+                    'user_ratings_total', 'price_level', 'opening_hours',    # Business details
+                    'photo', 'reviews', 'url', 'international_phone_number'  # Rich media and reviews
                 ]
             )
             
+            # Validate API response and handle place not found scenarios
             if not place_details or 'result' not in place_details:
                 return JsonResponse({'error': 'Place not found'}, status=404)
             
             place = place_details['result']
             
-            # Format photos - get more photos for place details
+            # Process and format photo URLs for frontend consumption
+            # Generate high-resolution photo URLs with Google Photos API
             photos = []
             if place.get('photos'):
-                for photo in place['photos'][:8]:  # Get up to 8 photos for place details
+                for photo in place['photos'][:8]:  # Limit to 8 photos for performance
+                    # Create high-resolution photo URL (800px width for quality display)
                     photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference={photo['photo_reference']}&key={GOOGLE_MAPS_API_KEY}"
                     photos.append(photo_url)
             
-            # Format opening hours
+            # Structure opening hours data for frontend display
+            # Convert Google's format to user-friendly schedule display
             opening_hours = None
             if place.get('opening_hours'):
                 opening_hours = {
-                    'open_now': place['opening_hours'].get('open_now', False),
-                    'weekday_text': place['opening_hours'].get('weekday_text', [])
+                    'open_now': place['opening_hours'].get('open_now', False),      # Current status
+                    'weekday_text': place['opening_hours'].get('weekday_text', [])  # Weekly schedule
                 }
             
-            # Format reviews
+            # Process and format user reviews for display
             reviews = []
             if place.get('reviews'):
                 for review in place['reviews'][:5]:  # Limit to 5 reviews

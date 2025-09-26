@@ -1,3 +1,37 @@
+/**
+ * Dashboard Component - Main Activity Discovery Interface
+ * 
+ * The Dashboard is the central component of NavixAI, providing users with personalized
+ * activity recommendations based on their location, weather conditions, and preferences.
+ * It integrates multiple data sources and provides an intuitive interface for activity
+ * discovery and exploration.
+ * 
+ * Key Features:
+ * - Real-time location-based activity suggestions
+ * - Weather-contextual recommendations
+ * - User preference filtering and personalization
+ * - Interactive photo carousels for activities
+ * - Like/dislike functionality for preference learning
+ * - Category-based activity filtering
+ * - Travel time and distance calculations
+ * - Responsive design with smooth animations
+ * 
+ * State Management:
+ * - activities: List of suggested activities with places and metadata
+ * - weatherData: Current weather conditions for contextual suggestions
+ * - loading: Loading state management for API calls
+ * - selectedCategory: Current category filter selection
+ * - likedPlaces: Set of user-liked places for preference tracking
+ * 
+ * External Dependencies:
+ * - Backend API for activity suggestions and place details
+ * - User location services for geographic context
+ * - User preferences utility for personalization
+ * - Unit converter for internationalization
+ * 
+ * @param {Object} appSettings - Application-wide settings including units and preferences
+ */
+
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -7,47 +41,74 @@ import PhotoCarousel from './PhotoCarousel';
 import './Dashboard.css';
 
 const Dashboard = ({ appSettings }) => {
+    // Navigation hook for programmatic routing to activity details
     const navigate = useNavigate();
-    const [weatherData, setWeatherData] = useState(null);
-    const [activities, setActivities] = useState([]);
     
-    // Debug activities changes
+    // Core application state
+    const [weatherData, setWeatherData] = useState(null);        // Current weather conditions
+    const [activities, setActivities] = useState([]);            // List of activity recommendations
+    const [loading, setLoading] = useState(true);               // Loading state for UI feedback
+    const [selectedCategory, setSelectedCategory] = useState('All Activities'); // Active filter category
+    const [likedPlaces, setLikedPlaces] = useState(new Set());  // User preference tracking
+    
+    // Debug effect to monitor activity state changes
+    // TODO: Remove in production - useful for development debugging
     useEffect(() => {
         console.log('=== ACTIVITIES CHANGED ===');
         console.log('New activities count:', activities.length);
         console.log('Activities:', activities.map(a => a.name));
         console.log('========================');
     }, [activities]);
-    const [loading, setLoading] = useState(true);
-    const [selectedCategory, setSelectedCategory] = useState('All Activities');
-    const [likedPlaces, setLikedPlaces] = useState(new Set()); // Track liked places
 
+    /**
+     * Activity category mapping for user interface filtering.
+     * These categories correspond to user preference types and help organize
+     * the diverse range of suggested activities into manageable groups.
+     */
     const activityCategories = [
-        'All Activities',
-        'Outdoor Adventures', 
-        'Relaxing Indoors',
-        'Cultural Experiences',
-        'Family Fun'
+        'All Activities',           // Default view showing all suggestions
+        'Outdoor Adventures',       // Parks, hiking, sports, outdoor recreation
+        'Relaxing Indoors',        // Cafes, spas, libraries, quiet spaces
+        'Cultural Experiences',    // Museums, galleries, historical sites
+        'Family Fun'              // Activities suitable for families with children
     ];
 
-    // Transform backend activity data to show individual places with real names
+    /**
+     * Transform backend activity data into frontend-compatible format.
+     * 
+     * This function processes the nested activity-place structure from the backend
+     * API and flattens it into individual activity cards that can be displayed
+     * in the UI. Each place becomes its own activity card with full metadata.
+     * 
+     * Process:
+     * 1. Iterate through backend activities (categories like 'restaurant', 'museum')
+     * 2. Extract individual places from each activity category
+     * 3. Create activity cards with place-specific data
+     * 4. Map activity types to UI categories for filtering
+     * 5. Preserve all metadata (photos, ratings, travel times)
+     * 
+     * @param {Array} backendActivities - Activities from the backend API
+     * @returns {Array} Transformed activities ready for UI display
+     */
     const transformActivitiesFromBackend = useCallback((backendActivities) => {
         const allPlaces = [];
         let placeId = 1;
         
+        // Process each activity category from the backend
         backendActivities.forEach((activity) => {
             if (activity.places && activity.places.length > 0) {
+                // Convert each place into an individual activity card
                 activity.places.forEach((place) => {
                     allPlaces.push({
                         id: placeId++,
-                        name: place.name || 'Unknown Place', // Real place name
-                        category: mapActivityToCategory(activity.activity_name),
+                        name: place.name || 'Unknown Place',                    // Display name
+                        category: mapActivityToCategory(activity.activity_name), // UI category mapping
                         description: `${place.name} - ${place.vicinity || 'Great location to visit'}`,
-                        photos: place.photos || [], // All photos array
-                        rating: place.rating || 4.0,
-                        reviews: place.user_ratings_total || 0,
-                        walkingTime: place.walking_time || null,
-                        drivingTime: place.driving_time || null,
+                        photos: place.photos || [],                             // Photo array for carousel
+                        rating: place.rating || 4.0,                          // Star rating
+                        reviews: place.user_ratings_total || 0,               // Review count
+                        walkingTime: place.walking_time || null,              // Travel time on foot
+                        drivingTime: place.driving_time || null,              // Travel time by car
                         walkingDistance: place.walking_distance || null,
                         drivingDistance: place.driving_distance || null,
                         activity_name: activity.activity_name,
@@ -140,13 +201,40 @@ const Dashboard = ({ appSettings }) => {
         setLikedPlaces(likedPlaceIds);
     }, [activities]);
 
+    /**
+     * Main data fetching function that coordinates location, weather, and activity data.
+     * 
+     * This is the primary data orchestration function that:
+     * 1. Requests user's current geographic location
+     * 2. Fetches weather-contextual activity suggestions from the backend API
+     * 3. Transforms backend data into frontend-compatible format
+     * 4. Applies user preference sorting and personalization
+     * 5. Handles fallback scenarios for API failures or missing data
+     * 
+     * The function implements a comprehensive error handling strategy:
+     * - Falls back to weather-only API if activity API fails
+     * - Provides mock data if all external APIs fail
+     * - Gracefully handles geolocation permission denial
+     * 
+     * Data Flow:
+     * 1. Geolocation API → coordinates
+     * 2. Coordinates → Backend API → activities + weather
+     * 3. Raw activities → transformation → UI-ready format
+     * 4. Activities → preference sorting → personalized results
+     * 
+     * @async
+     * @function fetchWeatherAndActivities
+     * @returns {Promise<void>} Promise that resolves when all data is fetched and processed
+     */
     const fetchWeatherAndActivities = useCallback(async () => {
+        // Check for geolocation API support
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 async (position) => {
                     const { latitude, longitude } = position.coords;
                     
                     try {
+                        // Debug logging for API integration monitoring
                         console.log('Making API call to:', 'http://127.0.0.1:8000/api/activity-suggestion/');
                         console.log('With data:', { 
                             latitude, 
@@ -155,14 +243,15 @@ const Dashboard = ({ appSettings }) => {
                             activities: appSettings?.activities || {}
                         });
                         
-                        // Fetch activities and weather data from the activity suggestion API
+                        // Fetch comprehensive activity and weather data from backend
+                        // The API returns both activity suggestions and weather context
                         const activityResponse = await axios.post(
                             'http://127.0.0.1:8000/api/activity-suggestion/',
                             { 
                                 latitude, 
                                 longitude,
-                                max_activities: 8,  // Get more activities for variety
-                                activities: appSettings?.activities || {}  // Send user activity preferences
+                                max_activities: 8,  // Request variety of activities for better user choice
+                                activities: appSettings?.activities || {}  // Include user activity preferences for personalization
                             },
                             { 
                                 headers: { 'Content-Type': 'application/json' } 
@@ -171,13 +260,16 @@ const Dashboard = ({ appSettings }) => {
                         
                         console.log('API Response:', activityResponse.data);
                         
+                        // Process successful API response
                         if (activityResponse.data && activityResponse.data.activities) {
                             console.log('Received activities from backend:', activityResponse.data.activities);
-                            // Transform backend activities to match frontend format
+                            
+                            // Transform backend data structure to frontend format
+                            // This conversion handles nested activity-place relationships
                             const transformedActivities = transformActivitiesFromBackend(activityResponse.data.activities);
                             console.log('Transformed activities:', transformedActivities);
                             
-                            // Debug: Check categories
+                            // Debug category distribution for UI balance verification
                             const categoryCount = {};
                             transformedActivities.forEach(activity => {
                                 const cat = activity.category;
@@ -185,7 +277,7 @@ const Dashboard = ({ appSettings }) => {
                             });
                             console.log('Activities by category:', categoryCount);
                             
-                            // Sort activities by user preferences
+                            // Apply personalized sorting based on user preference history
                             const sortedActivities = userPreferences.sortActivitiesByPreference(transformedActivities);
                             setActivities(sortedActivities);
                             
